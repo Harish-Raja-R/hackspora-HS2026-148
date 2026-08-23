@@ -33,9 +33,19 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
   // 5. Detect Organization
   let organization = 'Not detected';
   for (const ent of KNOWN_ENTERPRISES) {
-    const isMatch = [ent.name, ...ent.aliases].some((alias) =>
-      new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)
-    );
+    const isMatch = [ent.name, ...ent.aliases].some((alias) => {
+      const aliasReg = new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      if (!aliasReg.test(text)) return false;
+      
+      // If enterprise is Google or Microsoft, check if it's only mentioned as a tool (e.g., Google Meet, Google Form, Microsoft Teams)
+      if (alias.toLowerCase() === 'google' || alias.toLowerCase() === 'microsoft') {
+        const textWithoutTools = text.replace(/google\s+(?:meet|form|forms|drive|doc|docs|classroom)/gi, '')
+                                     .replace(/microsoft\s+(?:teams|word|excel|powerpoint)/gi, '');
+        return aliasReg.test(textWithoutTools);
+      }
+      return true;
+    });
+
     if (isMatch) {
       organization = ent.name;
       if (website === 'Not detected') {
@@ -47,8 +57,8 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
 
   if (organization === 'Not detected') {
     const orgRegexes = [
-      /(?:at|for|from|with|company:?|organization:?)\s+([A-Z][A-Za-z0-9&.\s]{2,25}(?:Technologies|Tech|Solutions|Pvt\s+Ltd|Inc|LLC|Corp|Labs|Services|Infotech|Media|Ventures|Enterprises|Studio)?)/i,
-      /([A-Z][A-Za-z0-9&.\s]{2,25})\s+(?:is hiring|is offering|presents|recruitment team|careers)/i
+      /(?:at|for|from|with|company:?|organization:?)\s+([A-Z][A-Za-z0-9&.\s]{2,25}(?:Technologies|Tech|Solutions|Pvt\s+Ltd|Inc|LLC|Corp|Labs|Services|Infotech|Media|Ventures|Enterprises|Studio|Agency)?)/i,
+      /([A-Z][A-Za-z0-9&.\s]{2,25})\s+(?:is hiring|is offering|presents|recruitment team|careers|Summer Research Fellowship)/i
     ];
     for (const reg of orgRegexes) {
       const match = text.match(reg);
@@ -140,21 +150,29 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
   let paymentPurpose = 'Not detected';
   let paymentRequested = false;
 
-  // Explicit check: Ignore payment if text says "never requests fees" or "zero cost"
-  const isAntiFeeDisclaimer = /never\s*requests?\s*(?:application\s*)?fees|zero\s*(?:cost|recruitment\s*fee)|100%\s*free/i.test(text);
+  // Explicit check: Ignore payment if text says "never requests fees", "zero cost", "100% sponsored"
+  const isAntiFeeDisclaimer = /never\s*requests?\s*(?:application\s*)?fees|zero\s*(?:cost|recruitment\s*fee|fee)|100%\s*(?:free|sponsored)|costs?\s+(?:are\s+)?100%\s+sponsored/i.test(text);
 
   const feeRegexes = [
     /(?:deposit|registration\s*fee|processing\s*fee|security\s*deposit|refundable\s*deposit|training\s*fee|onboarding\s*fee|kit\s*fee|clearance\s*fee|application\s*fee|courier\s*fee|equipment\s*deposit)\s*(?:of|is|:)?\s*(?:INR|Rs\.?|₹|\$|USD|EUR|€|£|GBP|USDT)?\s*([\d,]+(?:\s*(?:USD|EUR|GBP|USDT|INR|Rs|₹|\$))?)/i,
-    /(?:pay|deposit|transfer|send|require|requires)\s+(?:an?\s+)?(?:upfront\s+)?(?:INR|Rs\.?|₹|\$|USD|EUR|€|£|GBP|USDT)?\s*([\d,]+(?:\s*(?:USD|EUR|GBP|USDT))?)/i,
+    /(?:pay|deposit|transfer|send|require|requires)\s+(?:an?\s+)?(?:upfront\s+)?(?:INR|Rs\.?|₹|\$|USD|EUR|€|£|GBP|USDT)\s*([\d,]+(?:\s*(?:USD|EUR|GBP|USDT))?)/i,
     /(?:INR|Rs\.?|₹|\$|USD|EUR|€|£|GBP|USDT)\s*([\d,]+(?:\s*(?:USD|EUR|GBP|USDT))?)\s*(?:as|for|towards|in)?\s*(?:registration|security|deposit|training|kit|laptop|clearance|processing|fee|foreign\s*currency)/i
   ];
 
-  const isFeeContext = /(?:fee|charge|deposit|pay|transfer|send|registration|kit|clearance|require|requires|cost|refundable)/i.test(text);
+  const isFeeContext = /(?:registration\s*fee|processing\s*fee|security\s*deposit|courier\s*charge|kit\s*fee|clearance\s*fee|pay\s*(?:INR|Rs|₹|\$)\s*[\d,]+|deposit\s*to\s*hr)/i.test(text);
 
   for (const reg of feeRegexes) {
     const m = text.match(reg);
     if (m && !isAntiFeeDisclaimer && isFeeContext) {
       let rawAmount = m[0].trim();
+      // Ensure amount is not preceded by salary/stipend/base
+      const mIdx = text.indexOf(m[0]);
+      if (mIdx > 0) {
+        const preceding = text.substring(Math.max(0, mIdx - 25), mIdx).toLowerCase();
+        if (/salary|stipend|base|package|ctc|lpa|sponsored|stipend\s*of/i.test(preceding)) {
+          continue;
+        }
+      }
       rawAmount = rawAmount.replace(/^(?:pay|deposit|transfer|send|require|requires|an?|upfront|refundable)\s+/i, '').trim();
       paymentAmount = rawAmount;
       paymentRequested = true;

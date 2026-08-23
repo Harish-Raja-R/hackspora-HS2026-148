@@ -67,7 +67,8 @@ export function aggregateInvestigation(
     rawScore = Math.max(rawScore, 65);
   }
 
-  if (uncertainty.isAmbiguous && !hasCriticalScam) {
+  const hasThreatSignals = signals.some((s) => s.weight > 0);
+  if (uncertainty.isAmbiguous && !hasCriticalScam && hasThreatSignals) {
     rawScore = Math.min(rawScore, 52);
     rawScore = Math.max(rawScore, 35);
   }

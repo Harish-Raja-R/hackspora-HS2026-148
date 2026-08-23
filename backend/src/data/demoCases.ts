@@ -125,5 +125,24 @@ Dr. Arthur Pendelton
 Grant Administrator
 Email: grant.disbursement@scholarship-global-fund.org
 Chat Support: https://t.me/ISF_Grant_Disbursement`
+  },
+  {
+    id: 'demo-5-contradictory-evidence',
+    title: 'Contradictory Claims & Hidden Fee Fraud',
+    category: 'High Risk Scam',
+    badge: 'HIGH RISK',
+    description: 'Header claims "100% Free & Zero Recruitment Charges", but fine print demands ₹2,999 registration fee on Telegram.',
+    content: `INFOSYS CAMPUS HIRING 2026 — 100% FREE MERIT RECRUITMENT PROGRAM
+
+NOTICE: In compliance with corporate ethics, this internship recruitment is 100% Free of charge with zero registration fees.
+
+Role: Associate Software Developer
+Stipend: ₹40,000 / month
+Location: Remote / Work From Home
+
+Candidate Selection Update:
+Congratulations! Based on your resume, you have been selected directly with no interview required.
+
+To activate your corporate login portal and receive your offer letter, please transfer a refundable security deposit of ₹2,999 to our verified account within 24 hours. Contact our coordinator on Telegram: @Infosys_Admin_Desk.`
   }
 ];

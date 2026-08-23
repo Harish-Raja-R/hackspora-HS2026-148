@@ -61,8 +61,10 @@ export function evaluateScamPatterns(
   }
 
   // 2. Mandatory Paid Training / Certification Purchase
-  const trainingFeeRegex = /(?:mandatory\s*training\s*charge|certificate\s*purchase|training\s*cost|course\s*fee\s*(?:of|is)\s*(?:INR|Rs|₹|\$|USD|EUR|€)|pay\s*for\s*training)/i;
-  if (trainingFeeRegex.test(text) && !isNegated('training')) {
+  const trainingFeeRegex = /(?:mandatory\s*training\s*charge|certificate\s*purchase|training\s*cost\s*(?:of|is)\s*(?:INR|Rs|₹|\$|USD|EUR|€)|course\s*fee\s*(?:of|is)\s*(?:INR|Rs|₹|\$|USD|EUR|€)|pay\s*for\s*training)/i;
+  const isSponsoredTraining = /(?:100%\s*sponsored|fully\s*paid\s*(?:\d+[\s-]month\s*)?corporate\s*training|sponsored\s*by|employer\s*sponsored)/i.test(text);
+
+  if (trainingFeeRegex.test(text) && !isNegated('training') && !isSponsoredTraining) {
     signals.push({
       id: 'SIG-TRN-02',
       signalId: 'SIG-TRN-02',
@@ -151,9 +153,11 @@ export function evaluateScamPatterns(
     });
   }
 
-  // 7. Unrealistic Compensation vs Experience Required
-  const unrealisticPayRegex = /(?:earn\s*(?:INR|Rs|₹|\$|USD|EUR|€)?\s*[3-9]\d,\d{3}\s*(?:per\s*week|per\s*day|weekly|daily)|daily\s*income\s*(?:INR|Rs|₹|\$)\s*[1-9]\d{3}|typing\s*job\s*[\d,]+|data\s*entry\s*(?:INR|₹)\s*[3-9]\d{3}\s*per\s*day|guaranteed\s*income)/i;
-  if (unrealisticPayRegex.test(text)) {
+  // 7. Unrealistic Compensation vs Experience Required (Daily/weekly low-skill lure)
+  const isAnnualSalary = /(?:per\s*annum|per\s*year|\/year|\/annum|lpa|annual)/i.test(text);
+  const unrealisticPayRegex = /(?:earn\s*(?:INR|Rs|₹|\$|USD|EUR|€)?\s*[3-9]\d,\d{3}\s*(?:per\s*week|per\s*day|weekly|daily)|daily\s*income\s*(?:INR|Rs|₹|\$)\s*[1-9]\d{3}|typing\s*job\s*[\d,]+|data\s*entry\s*(?:INR|₹)\s*[3-9]\d{3}\s*per\s*day|guaranteed\s*income|guaranteed\s*daily\s*payout)/i;
+  
+  if (unrealisticPayRegex.test(text) && !isAnnualSalary) {
     signals.push({
       id: 'SIG-PAY-07',
       signalId: 'SIG-PAY-07',
@@ -440,7 +444,7 @@ export function evaluateScamPatterns(
   }
 
   // Positive Signal 4: Explicit Zero-Fee Policy / No Payment Demand
-  const zeroFeeRegex = /(?:we\s*never\s*ask\s*for\s*money|no\s*application\s*fee|free\s*of\s*charge|zero\s*recruitment\s*fee|equal\s*opportunity\s*employer|never\s*requests?\s*(?:application\s*)?fees)/i;
+  const zeroFeeRegex = /(?:we\s*never\s*ask\s*for\s*money|no\s*application\s*fee|free\s*of\s*charge|zero\s*recruitment\s*fee|equal\s*opportunity\s*employer|never\s*requests?\s*(?:application\s*)?fees|zero\s*fee)/i;
   if (zeroFeeRegex.test(text) && entities.paymentAmount === 'Not detected') {
     signals.push({
       id: 'SIG-POS-04',
@@ -455,6 +459,26 @@ export function evaluateScamPatterns(
       whyItMatters: 'Reputable employers proactively clarify zero-fee policies to protect applicants from impersonators.',
       mitigation: 'Proceed through standard company portal.'
     });
+  }
+
+  // Positive Signal 5: Accredited Academic / Governmental / Open Source Domain
+  if (entities.website !== 'Not detected' || entities.opportunityUrl !== 'Not detected') {
+    const webOrUrl = (entities.website + ' ' + entities.opportunityUrl).toLowerCase();
+    if (webOrUrl.includes('.ac.in') || webOrUrl.includes('.edu') || webOrUrl.includes('.gov') || webOrUrl.includes('.org') || webOrUrl.includes('github.com')) {
+      signals.push({
+        id: 'SIG-POS-05',
+        signalId: 'SIG-POS-05',
+        name: 'Accredited Academic / Institutional / Open Source Infrastructure',
+        severity: 'POSITIVE',
+        category: 'TRUST',
+        evidence: `Opportunity hosted on verified institutional or open-source infrastructure: ${entities.website !== 'Not detected' ? entities.website : entities.opportunityUrl}`,
+        weight: -15,
+        riskContribution: -15,
+        explanation: 'Institutional top-level domain (.edu, .ac.in, .gov, .org, github.com) verified.',
+        whyItMatters: 'Academic (.ac.in/.edu) and governmental registries require authenticated organizational credentials before registration.',
+        mitigation: 'Verify guidelines directly on the official institutional portal.'
+      });
+    }
   }
 
   return signals;
