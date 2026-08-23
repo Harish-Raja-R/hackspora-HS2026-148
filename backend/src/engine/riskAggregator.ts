@@ -10,7 +10,14 @@ import {
   RecommendedAction,
   UncertaintyHandling,
   CategoryRisks,
-  InvestigationStep
+  InvestigationStep,
+  OpportunityDna,
+  TrustProfile,
+  Contradiction,
+  LegitimacyCheck,
+  ManipulationSignal,
+  FalsePositiveContext,
+  ScoreWaterfallDriver
 } from './types.js';
 
 export function aggregateInvestigation(
@@ -27,7 +34,6 @@ export function aggregateInvestigation(
   // 1. Calculate Clustered Risk Score with Anti-Double-Counting Dampener
   let rawScore = 5; // ambient baseline
 
-  // Group positive scam weights by category cluster to prevent redundant double counting
   const clusters: { [cat: string]: number[] } = {};
   let positiveTrustOffset = 0;
 
@@ -37,12 +43,10 @@ export function aggregateInvestigation(
       if (!clusters[cat]) clusters[cat] = [];
       clusters[cat].push(sig.weight);
     } else {
-      // Trust signal (negative weight)
       positiveTrustOffset += sig.weight;
     }
   }
 
-  // Calculate cluster weights: Highest signal in cluster is 100%, secondary signals are 40%
   for (const cat of Object.keys(clusters)) {
     const weights = clusters[cat].sort((a, b) => b - a);
     const primary = weights[0] || 0;
@@ -50,27 +54,22 @@ export function aggregateInvestigation(
     rawScore += primary + secondary;
   }
 
-  // Apply positive trust reducers
   rawScore += positiveTrustOffset;
 
-  // If critical scam vectors detected, ensure score reaches HIGH RISK tier floor
   const hasCriticalScam = signals.some((s) => s.severity === 'CRITICAL');
   if (hasCriticalScam) {
     rawScore = Math.max(rawScore, 65);
   }
 
-  // If severe mismatch detected in consistency matrix, ensure appropriate risk floor
   if (orgConsistency.overallConsistency === 'SEVERE_MISMATCH') {
     rawScore = Math.max(rawScore, 65);
   }
 
-  // If ambiguous/sparse and no critical signals found, settle in Needs Verification zone
   if (uncertainty.isAmbiguous && !hasCriticalScam) {
     rawScore = Math.min(rawScore, 52);
     rawScore = Math.max(rawScore, 35);
   }
 
-  // Bound to 0 - 100
   const riskScore = Math.max(0, Math.min(100, Math.round(rawScore)));
 
   // 2. Classify Risk Tier & Risk Level
@@ -87,7 +86,7 @@ export function aggregateInvestigation(
     riskLevel = 'LOW';
   }
 
-  // 3. Calculate 6 Category Risk Dimensions (0 - 100 each)
+  // 3. Calculate 6 Category Risk Dimensions
   const calculateCategoryRisk = (category: string, relatedSignals: ScamSignal[]): number => {
     const catSigs = relatedSignals.filter((s) => s.category === category && s.weight > 0);
     if (catSigs.length === 0) return 0;
@@ -115,7 +114,7 @@ export function aggregateInvestigation(
     category: s.category
   }));
 
-  // 5. Formulate Tier-Specific Recommended Action Playbook
+  // 5. Recommended Action Playbook
   let recommendedAction: RecommendedAction;
 
   if (riskTier === 'HIGH RISK') {
@@ -226,7 +225,199 @@ export function aggregateInvestigation(
     executiveAssessment = `Investigation classified this opportunity as LOW RISK (${riskScore}/100) with ${confidenceScore}% confidence. Opportunity attributes align with legitimate enterprise talent acquisition standards, verified domain infrastructure, and conventional screening protocols with zero candidate financial liability.`;
   }
 
-  // 8. Generate Structured Investigation Steps
+  // ----------------------------------------------------
+  // 8. PROMPT 5 DIFFERENTIATION LAYER COMPUTATIONS
+  // ----------------------------------------------------
+
+  // 8.1 Opportunity DNA
+  let evidenceCompleteness = 50;
+  if (entities.organization !== 'Not detected') evidenceCompleteness += 10;
+  if (entities.recruiterEmail !== 'Not detected') evidenceCompleteness += 10;
+  if (entities.jobTitle !== 'Not detected') evidenceCompleteness += 10;
+  if (entities.salaryStipend !== 'Not detected') evidenceCompleteness += 10;
+  if (entities.applicationMethod !== 'Standard Direct Inquiry') evidenceCompleteness += 10;
+  evidenceCompleteness = Math.min(100, evidenceCompleteness);
+
+  const opportunityDna: OpportunityDna = {
+    organization: entities.organization,
+    recruiter: entities.recruiter,
+    contact: entities.recruiterEmail,
+    domain: entities.website,
+    opportunityType: entities.opportunityType,
+    compensation: entities.salaryStipend,
+    payment: entities.paymentAmount,
+    urgency: entities.deadlines,
+    selection: entities.applicationMethod,
+    evidenceCompleteness,
+    consistencyFingerprint: {
+      organization: orgConsistency.orgIdentityStatus === 'VERIFIED' ? 'MATCH' : orgConsistency.orgIdentityStatus === 'UNRESOLVED' ? 'UNKNOWN' : 'MATCH',
+      recruiter: entities.recruiter !== 'Not detected' ? 'MATCH' : 'UNKNOWN',
+      contact: orgConsistency.recruiterDomainStatus === 'OFFICIAL_MATCH' ? 'MATCH' : (orgConsistency.recruiterDomainStatus === 'PUBLIC_FREE_EMAIL' || orgConsistency.recruiterDomainStatus === 'DOMAIN_MISMATCH') ? 'MISMATCH' : 'UNKNOWN',
+      payment: entities.paymentRequested ? 'MISMATCH' : 'MATCH',
+      process: (entities.applicationMethod.includes('Direct Selection Without Interview') || entities.applicationMethod.includes('Telegram')) ? 'MISMATCH' : 'MATCH'
+    }
+  };
+
+  // 8.2 Opportunity Trust Profile
+  const trustProfile: TrustProfile = {
+    identityConsistency: Math.max(0, 100 - categoryRisks.organization),
+    contactConsistency: Math.max(0, 100 - categoryRisks.communication),
+    processConsistency: Math.max(0, 100 - Math.round(categoryRisks.urgency * 0.7)),
+    financialSafety: Math.max(0, 100 - categoryRisks.financial),
+    evidenceStrength: confidenceScore
+  };
+
+  // 8.3 Contradiction Engine
+  const contradictions: Contradiction[] = [];
+  const lowerText = inputSnippet.toLowerCase();
+
+  // Contradiction 1: Enterprise Brand vs Public Webmail
+  if (
+    entities.organization !== 'Not detected' &&
+    (orgConsistency.recruiterDomainStatus === 'PUBLIC_FREE_EMAIL' || orgConsistency.recruiterDomainStatus === 'DOMAIN_MISMATCH')
+  ) {
+    contradictions.push({
+      id: 'CONTRA-01',
+      type: 'IDENTITY_VS_CHANNEL',
+      claimA: `Claimed Enterprise: ${entities.organization}`,
+      claimB: `Recruiter Contact: ${entities.recruiterEmail}`,
+      explanation: `Organization claims enterprise brand affiliation with ${entities.organization}, but recruiter contact originates from an unauthenticated public domain (${entities.recruiterEmail}).`,
+      severity: 'CRITICAL'
+    });
+  }
+
+  // Contradiction 2: Claimed "No Fee / Free" vs Explicit Payment Request
+  if (lowerText.includes('free') || lowerText.includes('zero cost') || lowerText.includes('no fee')) {
+    if (entities.paymentRequested) {
+      contradictions.push({
+        id: 'CONTRA-02',
+        type: 'STATED_FREE_VS_FEE_DEMAND',
+        claimA: 'Stated terms mention free/zero recruitment fees',
+        claimB: `Demanded payment: ${entities.paymentAmount}`,
+        explanation: 'Opportunity text states zero recruitment fee policy, yet later demands an upfront advance payment or deposit.',
+        severity: 'CRITICAL'
+      });
+    }
+  }
+
+  // Contradiction 3: Remote Internship vs Physical Office Immediate Joining
+  if (entities.location.includes('Remote') && (lowerText.includes('report to office tomorrow') || lowerText.includes('in-person verification mandatory at location'))) {
+    contradictions.push({
+      id: 'CONTRA-03',
+      type: 'REMOTE_VS_IN_PERSON',
+      claimA: 'Work Mode: Remote / Work From Home',
+      claimB: 'Condition: Immediate physical office reporting mandated',
+      explanation: 'Role is marketed as 100% remote, but instructions demand immediate mandatory in-person office appearance.',
+      severity: 'MEDIUM'
+    });
+  }
+
+  // Contradiction 4: High Payout for Low-Skill / No-Interview Selection
+  if (
+    entities.applicationMethod.includes('Without Interview') &&
+    (entities.salaryStipend !== 'Not detected' || lowerText.includes('guaranteed payout') || lowerText.includes('per day'))
+  ) {
+    contradictions.push({
+      id: 'CONTRA-04',
+      type: 'SELECTION_VS_COMPENSATION',
+      claimA: 'Direct selection with zero interviews/evaluations',
+      claimB: `Guaranteed compensation: ${entities.salaryStipend}`,
+      explanation: 'High compensation is guaranteed without conducting technical interviews or portfolio verification.',
+      severity: 'HIGH'
+    });
+  }
+
+  // 8.4 Legitimacy Check
+  const positiveIndicators: string[] = [];
+  if (orgConsistency.recruiterDomainStatus === 'OFFICIAL_MATCH') {
+    positiveIndicators.push('Recruiter contact authenticated against official corporate domain');
+  }
+  if (!entities.paymentRequested && entities.paymentAmount === 'Not detected') {
+    positiveIndicators.push('Zero candidate upfront registration or hardware fees detected');
+  }
+  if (orgConsistency.recruitmentWorkflowStatus === 'STANDARD_MULTI_STAGE') {
+    positiveIndicators.push('Structured multi-stage recruitment and assessment workflow');
+  }
+  if (orgConsistency.contactPlatformStatus === 'ENTERPRISE_ATS') {
+    positiveIndicators.push('Application routed through authenticated enterprise candidate portal');
+  }
+  if (entities.salaryStipend !== 'Not detected' && !entities.paymentRequested) {
+    positiveIndicators.push('Transparent compensation structure disclosed without fee deductions');
+  }
+
+  const legitimacyCheck: LegitimacyCheck = {
+    positiveIndicators,
+    rationale: positiveIndicators.length > 0
+      ? 'These positive indicators reduce overall risk, but do not independently prove legitimacy. Always cross-reference high-impact decisions.'
+      : 'No verified positive trust anchors were detected in the submitted opportunity.'
+  };
+
+  // 8.5 Manipulation Signals
+  const manipulationSignals: ManipulationSignal[] = [];
+  if (entities.deadlines !== 'Not detected') {
+    manipulationSignals.push({
+      type: 'URGENCY',
+      quote: entities.deadlines,
+      explanation: 'Artificial strict deadline manufactures psychological pressure to rush payments before logical verification.'
+    });
+  }
+  if (/only\s*[0-9]+\s*(?:seats|slots|spots)\s*left/i.test(inputSnippet)) {
+    manipulationSignals.push({
+      type: 'SCARCITY',
+      quote: 'Only limited seats / slots remaining',
+      explanation: 'Artificial scarcity creates Fear Of Missing Out (FOMO) to discourage independent research.'
+    });
+  }
+  if (/congratulations.*selected|shortlisted directly|official company selection/i.test(inputSnippet)) {
+    manipulationSignals.push({
+      type: 'AUTHORITY',
+      quote: 'Direct selection / shortlisting claim',
+      explanation: 'Authoritative flattery lowers candidate suspicion before introducing financial demands.'
+    });
+  }
+  if (/do not contact.*office|confidential hiring channel|exclusive internal quota/i.test(inputSnippet)) {
+    manipulationSignals.push({
+      type: 'SECRECY',
+      quote: 'Instructions discouraging independent office contact',
+      explanation: 'Explicitly deters candidate from verifying the recruiter through official company channels.'
+    });
+  }
+  if (/100%\s*(?:job guarantee|placement guarantee)|daily guaranteed/i.test(inputSnippet)) {
+    manipulationSignals.push({
+      type: 'GUARANTEE',
+      quote: '100% Guaranteed Employment / Daily Return',
+      explanation: 'Unrealistic zero-risk guarantees entice victims with certainty.'
+    });
+  }
+
+  // 8.6 False-Positive Awareness
+  const falsePositiveContext: FalsePositiveContext[] = [];
+  if (orgConsistency.recruiterDomainStatus === 'PUBLIC_FREE_EMAIL') {
+    falsePositiveContext.push({
+      signalName: 'Public Webmail Provider (e.g. Gmail / Yahoo)',
+      potentialBenignExplanation: 'Early-stage startups, university student clubs, and independent boutique agencies may legitimately use public webmail.',
+      contextualAdvice: 'A public email address alone does not prove malice; verify recruiter identity on LinkedIn and check official company registry records.'
+    });
+  }
+  if (entities.communicationPlatform === 'Telegram' || entities.communicationPlatform === 'Discord') {
+    falsePositiveContext.push({
+      signalName: 'Informal Chat Communication (Telegram / Discord)',
+      potentialBenignExplanation: 'Web3, open-source communities, and decentralized freelance teams frequently use Discord or Telegram for collaboration.',
+      contextualAdvice: 'Ensure contracts and escrow agreements are signed through reputable platforms before starting work.'
+    });
+  }
+
+  // 8.7 Score Waterfall Drivers
+  const scoreDrivers: ScoreWaterfallDriver[] = [];
+  for (const s of signals) {
+    scoreDrivers.push({
+      name: s.name,
+      delta: s.weight,
+      category: s.category
+    });
+  }
+
+  // 9. Structured Investigation Timeline Steps
   const now = new Date().toISOString();
   const investigationSteps: InvestigationStep[] = [
     {
@@ -305,6 +496,15 @@ export function aggregateInvestigation(
     limitations,
     investigationSteps,
     disclaimer:
-      'ScamCheck provides algorithmic risk indicators and intelligence signals based on submitted evidence, not definitive legal proof of fraud. High-impact academic, financial, and career decisions should always be cross-referenced with independent primary sources.'
+      'ScamCheck provides algorithmic risk indicators and intelligence signals based on submitted evidence, not definitive legal proof of fraud. High-impact academic, financial, and career decisions should always be cross-referenced with independent primary sources.',
+
+    // Prompt 5 Features
+    opportunityDna,
+    trustProfile,
+    contradictions,
+    legitimacyCheck,
+    manipulationSignals,
+    falsePositiveContext,
+    scoreDrivers
   };
 }

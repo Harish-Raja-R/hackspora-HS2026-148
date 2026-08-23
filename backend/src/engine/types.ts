@@ -161,6 +161,70 @@ export interface InvestigationStep {
   timestamp: string;
 }
 
+// ----------------------------------------------------
+// PROMPT 5 DIFFERENTIATION LAYER INTERFACES
+// ----------------------------------------------------
+
+export interface OpportunityDna {
+  organization: string;
+  recruiter: string;
+  contact: string;
+  domain: string;
+  opportunityType: string;
+  compensation: string;
+  payment: string;
+  urgency: string;
+  selection: string;
+  evidenceCompleteness: number; // 0 - 100%
+  consistencyFingerprint: {
+    organization: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+    recruiter: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+    contact: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+    payment: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+    process: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+  };
+}
+
+export interface TrustProfile {
+  identityConsistency: number; // 0 - 100
+  contactConsistency: number;  // 0 - 100
+  processConsistency: number;  // 0 - 100
+  financialSafety: number;     // 0 - 100
+  evidenceStrength: number;    // 0 - 100 (separate from legitimacy)
+}
+
+export interface Contradiction {
+  id: string;
+  type: string;
+  claimA: string;
+  claimB: string;
+  explanation: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
+}
+
+export interface LegitimacyCheck {
+  positiveIndicators: string[];
+  rationale: string;
+}
+
+export interface ManipulationSignal {
+  type: 'URGENCY' | 'SCARCITY' | 'AUTHORITY' | 'SECRECY' | 'GUARANTEE';
+  quote: string;
+  explanation: string;
+}
+
+export interface FalsePositiveContext {
+  signalName: string;
+  potentialBenignExplanation: string;
+  contextualAdvice: string;
+}
+
+export interface ScoreWaterfallDriver {
+  name: string;
+  delta: number;
+  category: string;
+}
+
 export interface InvestigationReport {
   id: string;
   timestamp: string;
@@ -187,6 +251,15 @@ export interface InvestigationReport {
   limitations: string[];
   investigationSteps: InvestigationStep[];
   disclaimer: string;
+
+  // Differentiation Features (Prompt 5)
+  opportunityDna?: OpportunityDna;
+  trustProfile?: TrustProfile;
+  contradictions?: Contradiction[];
+  legitimacyCheck?: LegitimacyCheck;
+  manipulationSignals?: ManipulationSignal[];
+  falsePositiveContext?: FalsePositiveContext[];
+  scoreDrivers?: ScoreWaterfallDriver[];
 }
 
 export interface ComparisonReport {

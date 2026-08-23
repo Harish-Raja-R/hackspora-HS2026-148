@@ -12,14 +12,16 @@ import {
   KeyRound,
   Clock,
   Radio,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   AlertOctagon,
   HelpCircle,
   GitCompare,
   History,
-  Shield
+  Shield,
+  ShieldAlert,
+  ArrowRight,
+  CheckCircle2
 } from 'lucide-react';
 import { InvestigationReport } from '../types/investigation';
 import { EvidenceChain } from './EvidenceChain';
@@ -28,6 +30,14 @@ import { PotentialExposureView } from './PotentialExposure';
 import { ActionRecommendations } from './ActionRecommendations';
 import { UncertaintyBanner } from './UncertaintyBanner';
 import { PrintReportModal } from './PrintReportModal';
+
+// Prompt 5 Differentiation Layer Components
+import { OpportunityDnaCard } from './OpportunityDnaCard';
+import { TrustProfileView } from './TrustProfileView';
+import { ContradictionsCard } from './ContradictionsCard';
+import { WhatIfSimulator } from './WhatIfSimulator';
+import { LegitimacyCheckView } from './LegitimacyCheckView';
+import { ScoreWaterfallView } from './ScoreWaterfallView';
 
 interface InvestigationReportProps {
   report: InvestigationReport;
@@ -93,6 +103,8 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
 
   // Financial request details
   const hasPayment = entities.paymentRequested || entities.paymentAmount !== 'Not detected';
+  const hasDomainMismatch = report.orgConsistency.recruiterDomainStatus === 'PUBLIC_FREE_EMAIL' || report.orgConsistency.recruiterDomainStatus === 'DOMAIN_MISMATCH';
+  const hasUrgency = entities.deadlines !== 'Not detected';
 
   return (
     <div className="max-w-5xl mx-auto my-8 space-y-8 animate-fadeIn">
@@ -114,7 +126,7 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
               {new Date(report.timestamp).toLocaleString()}
             </span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 uppercase">
-              INPUT: {report.inputMode}
+              SOURCE: {report.inputMode.toUpperCase()}
             </span>
           </div>
 
@@ -161,7 +173,7 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
 
             <button
               onClick={onReset}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-700/60 text-cyan-300 text-xs font-bold transition-all"
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-700/60 text-cyan-300 text-xs font-bold transition-all"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Analyze Another</span>
@@ -299,6 +311,15 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
           </p>
         </div>
       </div>
+
+      {/* PROMPT 5 FEATURE: OPPORTUNITY DNA & FINGERPRINT */}
+      <OpportunityDnaCard dna={report.opportunityDna} />
+
+      {/* PROMPT 5 FEATURE: CONTRADICTIONS ENGINE (IF CONTRADICTIONS DETECTED) */}
+      <ContradictionsCard contradictions={report.contradictions} />
+
+      {/* PROMPT 5 FEATURE: OPPORTUNITY TRUST PROFILE */}
+      <TrustProfileView profile={report.trustProfile} />
 
       {/* 5. RISK BREAKDOWN — 6 INTERACTIVE CATEGORY DIMENSIONS (Section 5) */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
@@ -513,6 +534,17 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
         )}
       </div>
 
+      {/* PROMPT 5 FEATURE: WHAT DRIVES THE SCORE & ARCHITECTURE TRANSPARENCY */}
+      <ScoreWaterfallView drivers={report.scoreDrivers} finalScore={report.riskScore} />
+
+      {/* PROMPT 5 FEATURE: WHAT-IF RISK SIMULATOR */}
+      <WhatIfSimulator
+        initialScore={report.riskScore}
+        hasPayment={hasPayment}
+        hasDomainMismatch={hasDomainMismatch}
+        hasUrgency={hasUrgency}
+      />
+
       {/* 6. CRITICAL FINDINGS (Section 6) */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -592,6 +624,13 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
 
       {/* 7 & 8. EXPLAINABLE EVIDENCE CHAIN & SOURCE HIGHLIGHTING (Sections 7 & 8) */}
       <EvidenceChain evidenceChain={report.evidenceChain} rawSnippet={report.inputSnippet} />
+
+      {/* PROMPT 5 FEATURE: LEGITIMACY CHECK, MANIPULATION SIGNALS & FALSE POSITIVE AWARENESS */}
+      <LegitimacyCheckView
+        legitimacy={report.legitimacyCheck}
+        manipulation={report.manipulationSignals}
+        falsePositives={report.falsePositiveContext}
+      />
 
       {/* 9. OPPORTUNITY INTELLIGENCE BLUEPRINT (Section 9) */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
@@ -775,6 +814,51 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
 
       {/* 14. RECOMMENDED ACTION ("WHAT SHOULD YOU DO?") (Section 14) */}
       <ActionRecommendations action={report.recommendedAction} />
+
+      {/* PROMPT 5 FEATURE: FINAL DECISION CARD (Section 22) */}
+      <div className={`p-6 sm:p-8 rounded-3xl border ${isHighRisk ? 'bg-rose-950/30 border-rose-800' : isNeedsVerif ? 'bg-amber-950/30 border-amber-800' : 'bg-emerald-950/30 border-emerald-800'} space-y-4`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+          <div className="flex items-center space-x-2">
+            <ShieldAlert className={`w-5 h-5 ${isHighRisk ? 'text-rose-400' : isNeedsVerif ? 'text-amber-400' : 'text-emerald-400'}`} />
+            <h3 className="text-lg font-extrabold text-white font-['Outfit']">
+              SCAMCHECK VERDICT & EXECUTIVE DIRECTIVE
+            </h3>
+          </div>
+          <span className="font-mono text-xs text-slate-300">
+            Confidence: <strong className="text-cyan-300">{report.confidenceScore}%</strong>
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-sm font-bold text-white font-['Outfit']">
+            {report.recommendedAction.headline}
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed font-mono">
+            {report.summary}
+          </p>
+        </div>
+
+        <div className="pt-2 flex flex-wrap gap-3">
+          <button
+            onClick={() => {
+              const evEl = document.getElementById('evidence-chain-station');
+              if (evEl) evEl.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-mono font-bold hover:bg-slate-800 transition-all"
+          >
+            <span>View Full Evidence Chain</span>
+            <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
+          </button>
+
+          <button
+            onClick={onReset}
+            className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-mono font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Analyze Another Opportunity</span>
+          </button>
+        </div>
+      </div>
 
       {/* 15. INVESTIGATION TIMELINE (Section 15) */}
       {report.investigationSteps && report.investigationSteps.length > 0 && (
