@@ -4,6 +4,8 @@ import { evaluateOrgConsistency } from '../backend/src/engine/orgConsistency.js'
 import { calculatePotentialExposure } from '../backend/src/engine/exposureCalculator.js';
 import { evaluateConfidence } from '../backend/src/engine/confidenceEngine.js';
 import { aggregateInvestigation } from '../backend/src/engine/riskAggregator.js';
+import { normalizeOcrText } from '../backend/src/parsers/ocrParser.js';
+import { analyzeUrlTarget } from '../backend/src/parsers/urlParser.js';
 
 let passedTests = 0;
 let failedTests = 0;
@@ -19,7 +21,7 @@ function assert(condition: boolean, testName: string, detail?: string) {
 }
 
 console.log('\n====================================================');
-console.log('🧪 RUNNING SCAMCHECK CORE INTELLIGENCE TEST SUITE (PROMPT 2)');
+console.log('🧪 RUNNING SCAMCHECK MULTI-MODAL & CORE TEST SUITE (PROMPT 4)');
 console.log('====================================================\n');
 
 // ----------------------------------------------------
@@ -264,12 +266,34 @@ const t9Report = aggregateInvestigation(
 
 assert(t9Report.riskScore <= 100 && t9Report.riskScore >= 65, 'Clustering dampener bounds score rationally', `Got: ${t9Report.riskScore}`);
 
-console.log('\n====================================================');
-console.log(`📊 TEST RESULTS: ${passedTests}/${passedTests + failedTests} Passed (${failedTests} Failed)`);
-console.log('====================================================\n');
+// ----------------------------------------------------
+// TEST 10 — OCR TEXT NORMALIZATION (MULTI-MODAL OCR)
+// ----------------------------------------------------
+console.log('\n▶ TEST 10: Multi-Modal OCR Text Normalization');
+const rawOcrNoise = 'Congratulations! Pay ₹ 2 , 999 fee to hr . tcs @ gmail . com within 24 hours .';
+const cleanedOcr = normalizeOcrText(rawOcrNoise);
+assert(cleanedOcr.includes('₹2,999'), 'OCR normalizer cleaned currency spacing', `Got: ${cleanedOcr}`);
+assert(cleanedOcr.includes('@gmail.com'), 'OCR normalizer cleaned email spacing', `Got: ${cleanedOcr}`);
 
-if (failedTests > 0) {
-  process.exit(1);
-} else {
-  console.log('🎉 ALL CORE INTELLIGENCE ENGINE TESTS PASSED PERFECTLY!\n');
+// ----------------------------------------------------
+// TEST 11 — URL SECURITY HEURISTICS (MULTI-MODAL URL)
+// ----------------------------------------------------
+console.log('\n▶ TEST 11: URL Security Heuristics');
+async function testUrlAnalysis() {
+  const phishingUrl = 'http://google.com.careers-portal.xyz/apply';
+  const urlRes = await analyzeUrlTarget(phishingUrl);
+  assert(urlRes.isSuspicious === true, 'Flagged deceptive phishing URL structure');
+  assert(urlRes.warnings.length >= 2, 'Detected multiple URL security warnings', `Warnings: ${urlRes.warnings.length}`);
 }
+
+testUrlAnalysis().then(() => {
+  console.log('\n====================================================');
+  console.log(`📊 TEST RESULTS: ${passedTests}/${passedTests + failedTests} Passed (${failedTests} Failed)`);
+  console.log('====================================================\n');
+
+  if (failedTests > 0) {
+    process.exit(1);
+  } else {
+    console.log('🎉 ALL MULTI-MODAL & CORE INTELLIGENCE ENGINE TESTS PASSED PERFECTLY!\n');
+  }
+});

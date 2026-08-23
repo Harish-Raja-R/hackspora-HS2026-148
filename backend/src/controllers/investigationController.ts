@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
 import { extractEntities } from '../engine/entityExtractor.js';
 import { evaluateScamPatterns } from '../engine/patternEngine.js';
 import { evaluateOrgConsistency } from '../engine/orgConsistency.js';
@@ -11,6 +12,8 @@ import { analyzeUrlTarget } from '../parsers/urlParser.js';
 import { InvestigationReport } from '../engine/types.js';
 
 export async function handleInvestigate(req: Request, res: Response): Promise<void> {
+  let uploadedFilePath: string | null = null;
+
   try {
     let inputSnippet = '';
     let inputMode: 'text' | 'document' | 'image' | 'url' = 'text';
@@ -18,6 +21,7 @@ export async function handleInvestigate(req: Request, res: Response): Promise<vo
     // 1. Check for File Upload (Document or Image)
     if (req.file) {
       const file = req.file;
+      uploadedFilePath = file.path;
       const mime = file.mimetype;
 
       if (mime.startsWith('image/')) {
@@ -37,14 +41,14 @@ export async function handleInvestigate(req: Request, res: Response): Promise<vo
       inputSnippet = req.body.text;
     } else {
       res.status(400).json({
-        error: 'Invalid Request: Please provide text, upload a document/image, or supply a URL to investigate.'
+        error: 'Please provide an opportunity message, document, image, or supported URL to investigate.'
       });
       return;
     }
 
     if (!inputSnippet || inputSnippet.trim().length === 0) {
       res.status(400).json({
-        error: 'Empty Input: No readable content could be extracted from the submitted opportunity.'
+        error: 'Unable to extract readable content from this submission. Please verify the document or image contains readable text.'
       });
       return;
     }
@@ -72,8 +76,17 @@ export async function handleInvestigate(req: Request, res: Response): Promise<vo
   } catch (error: any) {
     console.error('Investigation error:', error);
     res.status(500).json({
-      error: 'Investigation Engine Error: An unexpected issue occurred while analyzing the opportunity.',
+      error: 'Investigation could not be completed. Please try again.',
       details: error.message
     });
+  } finally {
+    // Clean up temporary uploaded file from disk
+    if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+      try {
+        fs.unlinkSync(uploadedFilePath);
+      } catch {
+        // ignore cleanup error
+      }
+    }
   }
 }
