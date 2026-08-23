@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { History, Search, Trash2, ArrowRight } from 'lucide-react';
-import { InvestigationReport } from '../types/investigation.js';
+import { InvestigationReport } from '../types/investigation';
 
 interface HistoryDrawerProps {
   history: InvestigationReport[];

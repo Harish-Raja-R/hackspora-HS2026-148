@@ -234,8 +234,8 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
                 <span className="text-3xl font-extrabold font-mono text-white tracking-tighter">
                   {report.riskScore}
                 </span>
-                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">
-                  / 100
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                  / 100 RISK
                 </span>
               </div>
             </div>
@@ -249,19 +249,26 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
                   {report.riskTier}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold bg-slate-900 border border-slate-700 text-slate-300">
-                  VERDICT: {report.recommendedAction.primaryVerdict}
+                  ACTION: {report.recommendedAction.primaryVerdict === 'STOP' ? 'DO NOT PAY / CEASE CONTACT' : report.recommendedAction.primaryVerdict === 'VERIFY' ? 'VERIFY INDEPENDENTLY' : 'PROCEED WITH CAUTION'}
                 </span>
               </div>
               <h2 className="text-lg sm:text-xl font-extrabold text-white font-['Outfit']">
                 {isHighRisk
-                  ? 'High Probability of Fraudulent Exploitation'
+                  ? 'High Risk of Fraudulent Exploitation'
                   : isNeedsVerif
                   ? 'Caution: Unverified Attributes Require Cross-Check'
                   : 'Authentic Opportunity Profile'}
               </h2>
-              <p className="text-xs text-slate-400 font-mono">
-                {criticalSignals.length} high-severity threat signatures detected.
-              </p>
+              <div className="text-xs text-slate-300 font-mono flex flex-wrap items-center gap-2">
+                <span className="text-slate-400">Primary Driver:</span>
+                <span className="font-bold text-cyan-300">
+                  {criticalSignals.length > 0
+                    ? criticalSignals[0].name
+                    : report.signals.length > 0
+                    ? report.signals[0].name
+                    : 'Standard enterprise recruitment workflow'}
+                </span>
+              </div>
             </div>
           </div>
 

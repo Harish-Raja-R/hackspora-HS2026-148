@@ -226,11 +226,17 @@ export const EvidenceChain: React.FC<EvidenceChainProps> = ({ evidenceChain, raw
                 {/* Flowchart Breakdown Details */}
                 {isExpanded && (
                   <div className="p-5 pt-0 space-y-4 border-t border-slate-800/60 mt-1">
+                    {/* Source Indicator */}
+                    <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-3">
+                      <span>SOURCE: <strong className="text-cyan-300">Ingested Opportunity Submission</strong></span>
+                      <span>CATEGORY: <strong className="text-slate-200">{node.category}</strong></span>
+                    </div>
+
                     {/* Stage 1: Submitted Evidence */}
                     <div className="space-y-1.5">
                       <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 flex items-center space-x-1">
                         <Quote className="w-3.5 h-3.5 text-cyan-400" />
-                        <span className="font-bold">1. Submitted Evidence (Extracted Quote):</span>
+                        <span className="font-bold">EVIDENCE (VERBATIM EXTRACT):</span>
                       </div>
                       <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs font-mono text-cyan-300 italic leading-relaxed">
                         {node.evidenceQuote}
@@ -239,14 +245,14 @@ export const EvidenceChain: React.FC<EvidenceChainProps> = ({ evidenceChain, raw
 
                     {/* Flow arrow */}
                     <div className="flex justify-center">
-                      <ArrowDown className="w-4 h-4 text-slate-600 animate-bounce" />
+                      <ArrowDown className="w-4 h-4 text-slate-600" />
                     </div>
 
                     {/* Stage 2: Security Rationale & Threat Impact */}
                     <div className="space-y-1.5">
                       <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 flex items-center space-x-1">
                         <Zap className="w-3.5 h-3.5 text-amber-400" />
-                        <span className="font-bold">2. Security Rationale & Why It Matters:</span>
+                        <span className="font-bold">WHY IT MATTERS:</span>
                       </div>
                       <p className="text-xs text-slate-200 leading-relaxed bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
                         {node.whyItMatters}
@@ -259,9 +265,9 @@ export const EvidenceChain: React.FC<EvidenceChainProps> = ({ evidenceChain, raw
                     </div>
 
                     {/* Stage 3: Risk Impact */}
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-xs font-mono">
-                      <span className="text-slate-400">Threat Category: <strong className="text-slate-200">{node.category}</strong></span>
-                      <span className="text-slate-400">Calibrated Risk Impact: <strong className={node.riskContribution > 0 ? 'text-rose-400' : 'text-emerald-400'}>{node.riskContribution > 0 ? `+${node.riskContribution}` : node.riskContribution} pts</strong></span>
+                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 text-xs font-mono">
+                      <span className="text-slate-400">FINDING CLASSIFICATION: <strong className="text-slate-200">{node.finding}</strong></span>
+                      <span className="text-slate-400">RISK CONTRIBUTION: <strong className={node.riskContribution > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>{node.riskContribution > 0 ? `+${node.riskContribution}` : node.riskContribution} pts</strong></span>
                     </div>
                   </div>
                 )}

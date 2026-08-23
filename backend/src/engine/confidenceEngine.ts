@@ -18,10 +18,18 @@ export function evaluateConfidence(
 
   // Factor 1: Submission Length & Depth
   const wordCount = text.trim().split(/\s+/).length;
+  const criticalSignals = signals.filter((s) => s.severity === 'CRITICAL');
+  const highSignals = signals.filter((s) => s.severity === 'HIGH');
+  const positiveSignals = signals.filter((s) => s.severity === 'POSITIVE');
+
   if (wordCount < 25) {
-    score -= 20;
-    missingEvidence.push('Extremely short submission snippet with limited textual context');
-    guidanceToAcquire.push('Provide the full message, email body, or job posting description');
+    if (criticalSignals.length >= 2 || (criticalSignals.length >= 1 && highSignals.length >= 1)) {
+      score -= 5;
+    } else {
+      score -= 20;
+      missingEvidence.push('Extremely short submission snippet with limited textual context');
+      guidanceToAcquire.push('Provide the full message, email body, or job posting description');
+    }
   } else if (wordCount > 80) {
     score += 10;
   }
@@ -46,20 +54,18 @@ export function evaluateConfidence(
     missingEvidence.push('No verifiable contact method (official email, phone, or application portal)');
     guidanceToAcquire.push('Request an official corporate email address or official careers link');
   } else if (orgConsistency.recruiterDomainStatus === 'PUBLIC_FREE_EMAIL') {
-    score -= 10;
-    missingEvidence.push('Recruiter uses public email provider; corporate domain not established');
-    guidanceToAcquire.push('Request recruiter to correspond via verified corporate email domain');
+    if (criticalSignals.length === 0) {
+      score -= 10;
+      missingEvidence.push('Recruiter uses public email provider; corporate domain not established');
+      guidanceToAcquire.push('Request recruiter to correspond via verified corporate email domain');
+    }
   } else if (orgConsistency.recruiterDomainStatus === 'OFFICIAL_MATCH') {
     score += 15;
   }
 
   // Factor 4: Corroborating Signals
-  const criticalSignals = signals.filter((s) => s.severity === 'CRITICAL');
-  const highSignals = signals.filter((s) => s.severity === 'HIGH');
-  const positiveSignals = signals.filter((s) => s.severity === 'POSITIVE');
-
-  if (criticalSignals.length >= 2 || (criticalSignals.length >= 1 && highSignals.length >= 2)) {
-    score += 20; // Multiple severe indicators strongly corroborate
+  if (criticalSignals.length >= 2 || (criticalSignals.length >= 1 && highSignals.length >= 1)) {
+    score += 25; // Multiple severe indicators strongly corroborate threat assessment
   } else if (positiveSignals.length >= 2 && criticalSignals.length === 0) {
     score += 20; // Multiple verified positive anchors
   } else if (signals.length === 0 && wordCount < 50) {

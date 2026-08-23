@@ -257,6 +257,69 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
         </div>
 
+        {/* How ScamCheck Works — 5-Step Explainable Architecture */}
+        <div className="mt-24">
+          <div className="text-center max-w-3xl mx-auto space-y-3 mb-12">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-cyan-400">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              <span>TRANSPARENT & EXPLAINABLE PIPELINE</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white font-['Outfit']">
+              How ScamCheck Works
+            </h2>
+            <p className="text-slate-400 text-sm">
+              AI assists with contextual analysis. The final risk score is generated from structured risk signals.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Step 1 */}
+            <div className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-2 relative">
+              <div className="text-xs font-mono font-bold text-cyan-400">01 // EXTRACT</div>
+              <h3 className="text-sm font-bold text-slate-100">Structured Parsing</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Normalizes text, OCR screenshots, PDFs, or URLs to isolate claims, organizations, recruiters, fees, and contacts.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-2 relative">
+              <div className="text-xs font-mono font-bold text-teal-400">02 // DETECT</div>
+              <h3 className="text-sm font-bold text-slate-100">Signal Detection</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Scans 22+ deterministic heuristics for advance fees, OTP theft, webmail misuse, and artificial deadlines.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-2 relative">
+              <div className="text-xs font-mono font-bold text-blue-400">03 // CORRELATE</div>
+              <h3 className="text-sm font-bold text-slate-100">Contradiction Engine</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Cross-checks recruiter handles against authoritative registries and exposes "free vs fee" claim contradictions.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-2 relative">
+              <div className="text-xs font-mono font-bold text-amber-400">04 // SCORE</div>
+              <h3 className="text-sm font-bold text-slate-100">Clustered Scoring</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Computes mathematical risk (0–100) via anti-double-counting cluster dampeners and calibrated negative trust offsets.
+              </p>
+            </div>
+
+            {/* Step 5 */}
+            <div className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-2 relative">
+              <div className="text-xs font-mono font-bold text-emerald-400">05 // RECOMMEND</div>
+              <h3 className="text-sm font-bold text-slate-100">Action Playbook</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Issues unambiguous executive directives (STOP, VERIFY, PROCEED) with practical independent validation steps.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Safety Philosophy Banner */}
         <div className="mt-20 p-8 rounded-2xl glass-panel border border-cyan-900/40 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/40">
           <div className="max-w-3xl mx-auto text-center space-y-4">

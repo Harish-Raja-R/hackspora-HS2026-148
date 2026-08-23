@@ -11,7 +11,7 @@ import {
   HelpCircle,
   ShieldCheck
 } from 'lucide-react';
-import { OrgConsistencyVector } from '../types/investigation.js';
+import { OrgConsistencyVector } from '../types/investigation';
 
 interface OrgConsistencyMatrixProps {
   consistency: OrgConsistencyVector;

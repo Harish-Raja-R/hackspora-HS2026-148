@@ -1,6 +1,6 @@
 import { InvestigationReport, ComparisonReport, DemoCase } from '../types/investigation';
 
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api');
 
 export async function investigateOpportunity(payload: {
   text?: string;
@@ -175,22 +175,23 @@ Payroll Verification Desk:
 support.payroll-disbursement@fastmail.com`
     },
     {
-      id: 'demo-5-psychological-manipulation',
-      title: 'Demo 5: High-Pressure Manipulation & Scarcity Scam',
-      category: 'Manipulation & Scarcity',
+      id: 'demo-5-contradictory-evidence',
+      title: 'Demo 5: Contradictory Claims & Hidden Fee Fraud',
+      category: 'Contradictory Evidence',
       badge: 'HIGH RISK',
-      description: 'Manufactured scarcity ("Only 2 seats remaining"), strict secrecy, and explicit instruction not to contact company switchboard.',
-      content: `CONFIDENTIAL HIRING NOTICE: EXCLUSIVE ACCELERATOR QUOTA
+      description: 'Opportunity states "100% Free & Zero Recruitment Charges", yet explicitly demands ₹2,999 advance registration fee on Telegram.',
+      content: `INFOSYS CAMPUS HIRING 2026 — 100% FREE MERIT RECRUITMENT PROGRAM
 
-Congratulations! You have been chosen for an exclusive reserved seat in our 2026 Executive Data Science Traineeship.
+NOTICE: In compliance with corporate ethics, this internship recruitment is 100% Free of charge with zero registration fees.
 
-CRITICAL TERMS & CONDITIONS:
-1. Extreme Scarcity: Exactly 2 seats remain available across India. Slots are allocated on a strict first-pay-first-served basis.
-2. Immediate Deposit: Pay INR 4,999 seat reservation fee before 6:00 PM today.
-3. Mandatory Secrecy: Do NOT contact the company main office switchboard or post on LinkedIn, as this is an internal confidential executive quota. Any external inquiry will result in immediate disqualification.
-4. 100% Guaranteed Placement: Daily payouts guaranteed upon joining.
+Role: Associate Software Developer
+Stipend: ₹40,000 / month
+Location: Remote / Work From Home
 
-Send your payment confirmation screenshot via WhatsApp to HR at +91 99887 76655.`
+Candidate Selection Update:
+Congratulations! Based on your resume, you have been selected directly with no interview required.
+
+To activate your corporate login portal and receive your offer letter, please transfer a refundable security deposit of ₹2,999 to our verified account within 24 hours. Contact our coordinator on Telegram: @Infosys_Admin_Desk.`
     }
   ];
 }

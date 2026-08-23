@@ -3,8 +3,8 @@ import {
   GitCompare,
   Sparkles
 } from 'lucide-react';
-import { ComparisonReport, DemoCase } from '../types/investigation.js';
-import { compareOpportunities } from '../services/api.js';
+import { ComparisonReport, DemoCase } from '../types/investigation';
+import { compareOpportunities } from '../services/api';
 
 interface ComparisonWorkspaceProps {
   demos: DemoCase[];

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight, ShieldQuestion } from 'lucide-react';
-import { UncertaintyHandling } from '../types/investigation.js';
+import { UncertaintyHandling } from '../types/investigation';
 
 interface UncertaintyBannerProps {
   uncertainty: UncertaintyHandling;

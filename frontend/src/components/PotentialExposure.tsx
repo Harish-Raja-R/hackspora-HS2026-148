@@ -6,7 +6,7 @@ import {
   Briefcase,
   EyeOff
 } from 'lucide-react';
-import { PotentialExposure, ExposureLevel } from '../types/investigation.js';
+import { PotentialExposure, ExposureLevel } from '../types/investigation';
 
 interface PotentialExposureProps {
   exposure: PotentialExposure;

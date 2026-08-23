@@ -126,6 +126,62 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation Bar (md:hidden) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel bg-[#07090e]/95 border-t border-slate-800/90 py-1.5 px-2">
+        <div className="grid grid-cols-5 gap-1 text-center">
+          <button
+            onClick={() => setActiveTab('investigate')}
+            className={`flex flex-col items-center py-1 rounded-lg text-[10px] font-medium transition-all ${
+              activeTab === 'investigate' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Layers className="w-4 h-4 mb-0.5" />
+            <span>Investigate</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('compare')}
+            className={`flex flex-col items-center py-1 rounded-lg text-[10px] font-medium transition-all ${
+              activeTab === 'compare' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <GitCompare className="w-4 h-4 mb-0.5" />
+            <span>Compare</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex flex-col items-center py-1 rounded-lg text-[10px] font-medium transition-all ${
+              activeTab === 'dashboard' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4 mb-0.5" />
+            <span>Dashboard</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('demos')}
+            className={`flex flex-col items-center py-1 rounded-lg text-[10px] font-medium transition-all ${
+              activeTab === 'demos' ? 'text-amber-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 mb-0.5" />
+            <span>Demos</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex flex-col items-center py-1 rounded-lg text-[10px] font-medium transition-all relative ${
+              activeTab === 'history' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <History className="w-4 h-4 mb-0.5" />
+            <span>History</span>
+            {historyCount > 0 && (
+              <span className="absolute top-0.5 right-2 px-1 py-0.1 text-[8px] font-bold rounded-full bg-cyan-600 text-white">
+                {historyCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
     </header>
   );
 };

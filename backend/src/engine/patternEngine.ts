@@ -75,7 +75,7 @@ export function evaluateScamPatterns(
       weight: 25,
       riskContribution: 25,
       explanation: 'Candidate is required to purchase paid courses or training certificates as a prerequisite to hiring.',
-      whyItMatters: 'Scammers frequently disguise training course sales as guaranteed job or internship offers.',
+      whyItMatters: 'Predatory campaigns frequently disguise third-party training course sales as guaranteed job or internship offers.',
       mitigation: 'Verify if the company provides employer-funded onboarding; refuse mandatory paid prerequisites.'
     });
   }
@@ -148,7 +148,7 @@ export function evaluateScamPatterns(
       weight: 15,
       riskContribution: 15,
       explanation: 'Artificial 24-48h deadlines and scarcity tactics used to compel immediate compliance.',
-      whyItMatters: 'Scammers induce panic with hyper-short artificial windows (e.g. 24 hours, "slots expiring") to prevent victims from consulting mentors or conducting due diligence.',
+      whyItMatters: 'Fraudulent campaigns induce urgency with hyper-short artificial windows (e.g. 24 hours, "slots expiring") to prevent targets from consulting mentors or conducting independent due diligence.',
       mitigation: 'Legitimate hiring cycles allow reasonable deliberation. Request formal written extension.'
     });
   }

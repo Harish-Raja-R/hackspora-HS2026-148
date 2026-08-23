@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles, ArrowRight, ShieldAlert, ShieldCheck, AlertTriangle } from 'lucide-react';
-import { DemoCase } from '../types/investigation.js';
+import { DemoCase } from '../types/investigation';
 
 interface DemoSelectorProps {
   demos: DemoCase[];

@@ -56,19 +56,28 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
   }
 
   if (organization === 'Not detected') {
+    const invalidOrgWords = new Set([
+      'dear', 'candidate', 'applicant', 'congratulations', 'details', 'more info',
+      'more information', 'info', 'further details', 'further information', 'free',
+      'you', 'your', 'our', 'this', 'that', 'the', 'an', 'a', 'everyone', 'anyone',
+      'all', 'interview', 'selection', 'joining', 'onboarding', 'contact', 'contact us',
+      'registration', 'stipend', 'salary', 'fees', 'fee', 'payment', 'apply', 'applying',
+      'help', 'support', 'queries', 'questions', 'now', 'today'
+    ]);
+
     const orgRegexes = [
-      /(?:at|for|from|with|company:?|organization:?)\s+([A-Z][A-Za-z0-9&.\s]{2,25}(?:Technologies|Tech|Solutions|Pvt\s+Ltd|Inc|LLC|Corp|Labs|Services|Infotech|Media|Ventures|Enterprises|Studio|Agency)?)/i,
+      /(?:at|for|from|with|company:?|organization:?)\s+([A-Z][A-Za-z0-9&.\s]{2,25}(?:Technologies|Tech|Solutions|Pvt\s+Ltd|Inc|LLC|Corp|Labs|Services|Infotech|Media|Ventures|Enterprises|Studio|Agency)?)/,
       /([A-Z][A-Za-z0-9&.\s]{2,25})\s+(?:is hiring|is offering|presents|recruitment team|careers|Summer Research Fellowship)/i
     ];
     for (const reg of orgRegexes) {
       const match = text.match(reg);
       if (match && match[1]) {
-        const candidate = match[1].trim();
+        let candidate = match[1].replace(/[.,:;!?]+$/, '').trim();
+        const candLower = candidate.toLowerCase();
         if (
-          !candidate.toLowerCase().includes('dear') &&
-          !candidate.toLowerCase().includes('candidate') &&
-          !candidate.toLowerCase().includes('applicant') &&
-          !candidate.toLowerCase().includes('congratulations') &&
+          !invalidOrgWords.has(candLower) &&
+          !Array.from(invalidOrgWords).some((w) => candLower === w || candLower.startsWith(w + ' ')) &&
+          candidate.length > 2 &&
           candidate.length < 40
         ) {
           organization = candidate;

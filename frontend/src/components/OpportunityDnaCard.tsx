@@ -14,7 +14,7 @@ export const OpportunityDnaCard: React.FC<OpportunityDnaCardProps> = ({ dna }) =
       return (
         <span className="flex items-center space-x-1 text-emerald-400 font-bold text-xs font-mono">
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>ALIGNED</span>
+          <span>✓ CONSISTENT</span>
         </span>
       );
     }
@@ -22,14 +22,14 @@ export const OpportunityDnaCard: React.FC<OpportunityDnaCardProps> = ({ dna }) =
       return (
         <span className="flex items-center space-x-1 text-rose-400 font-bold text-xs font-mono">
           <XCircle className="w-3.5 h-3.5" />
-          <span>INCONSISTENT</span>
+          <span>✗ MISMATCH</span>
         </span>
       );
     }
     return (
       <span className="flex items-center space-x-1 text-amber-400 font-bold text-xs font-mono">
         <AlertTriangle className="w-3.5 h-3.5" />
-        <span>UNVERIFIED</span>
+        <span>⚠ UNVERIFIED</span>
       </span>
     );
   };

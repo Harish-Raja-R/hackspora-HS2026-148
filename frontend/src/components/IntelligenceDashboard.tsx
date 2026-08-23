@@ -6,7 +6,7 @@ import {
   TrendingUp,
   Trash2
 } from 'lucide-react';
-import { InvestigationReport } from '../types/investigation.js';
+import { InvestigationReport } from '../types/investigation';
 
 interface IntelligenceDashboardProps {
   history: InvestigationReport[];

@@ -1,7 +1,7 @@
 export interface DemoCase {
   id: string;
   title: string;
-  category: 'High Risk Scam' | 'Verified Legitimate' | 'Ambiguous Offer' | 'Scholarship Fraud';
+  category: string;
   badge: 'HIGH RISK' | 'LOW RISK' | 'NEEDS VERIFICATION';
   description: string;
   content: string;
@@ -9,11 +9,11 @@ export interface DemoCase {
 
 export const DEMO_CASES: DemoCase[] = [
   {
-    id: 'demo-1-fake-internship',
-    title: 'Deceptive Enterprise Internship (TCS Impersonation)',
-    category: 'High Risk Scam',
+    id: 'demo-1-impersonation-scam',
+    title: 'Demo 1: Enterprise Impersonation Scam (TCS)',
+    category: 'Impersonation Scam',
     badge: 'HIGH RISK',
-    description: 'Impersonates TCS with ₹2,999 registration fee, Gmail address, 24h deadline, and Telegram onboarding.',
+    description: 'Major corporate brand claimed with public Gmail recruiter, ₹2,999 advance fee, 24h deadline, and Telegram routing.',
     content: `CONGRATULATIONS! YOU HAVE BEEN SELECTED!
 
 Dear Candidate,
@@ -26,7 +26,7 @@ Internship Highlights:
 - Duration: 3 Months
 
 Important Instructions for Onboarding:
-As per our updated campus hiring policy, all selected candidates must deposit a one-time refundable security and training fee of INR 2,999 towards your developer training kit and cloud credentials setup. This amount is 100% refundable with your first monthly stipend.
+As per our campus hiring policy, all selected candidates must deposit a one-time refundable security and training fee of INR 2,999 towards your developer training kit and cloud credentials setup. This amount is 100% refundable with your first monthly stipend.
 
 Required Documents for Immediate Dispatch:
 Please upload your Aadhaar Card, PAN Card, and Bank Account Details for direct stipend setup.
@@ -44,10 +44,10 @@ Website: https://tcs.com`
   },
   {
     id: 'demo-2-legitimate-offer',
-    title: 'Verified Software Engineering Internship (Google)',
-    category: 'Verified Legitimate',
+    title: 'Demo 2: Verified Enterprise Internship (Google)',
+    category: 'Authentic Opportunity',
     badge: 'LOW RISK',
-    description: 'Authentic enterprise internship through official ATS portal with standard interview rounds and $0 candidate fee.',
+    description: 'Authentic enterprise internship through official ATS portal with standard coding assessments and $0 candidate fee.',
     content: `Google LLC — Software Engineering Internship (Summer 2026)
 
 Position: Software Engineering Intern
@@ -79,11 +79,11 @@ Google India Private Limited
 Email: ananya.sen@google.com`
   },
   {
-    id: 'demo-3-ambiguous-freelance',
-    title: 'Ambiguous Startup Web Development Project',
-    category: 'Ambiguous Offer',
+    id: 'demo-3-ambiguous-stealth',
+    title: 'Demo 3: Ambiguous Stealth Startup Gig',
+    category: 'Ambiguous Opportunity',
     badge: 'NEEDS VERIFICATION',
-    description: 'Vague freelance offer with minimal company footprint, personal email, but no immediate financial extortion.',
+    description: 'Freelance gig with incomplete organization web footprint and personal email, but no immediate financial extortion.',
     content: `Hey there!
 I saw your profile on GitHub and wanted to reach out regarding a fast-track project for our early-stage stealth startup, NexaCraft Studios.
 
@@ -99,39 +99,34 @@ Mark
 Founder, NexaCraft Studios`
   },
   {
-    id: 'demo-4-scholarship-fraud',
-    title: 'Global Fellowship & Grant Advance-Fee Scam',
-    category: 'Scholarship Fraud',
+    id: 'demo-4-credential-theft',
+    title: 'Demo 4: Credential & OTP Harvesting Fraud',
+    category: 'Credential Scam',
     badge: 'HIGH RISK',
-    description: 'Fake international grant requiring $350 disbursement clearance fee and passport scans.',
-    content: `INTERNATIONAL SCHOLARSHIP FOUNDATION & GLOBAL RESEARCH GRANTS (GENEVA / NEW YORK)
+    description: 'Demands netbanking account password, OTP verification code, and UPI PIN under the guise of stipend bank transfer.',
+    content: `DIRECT SALARY DISBURSEMENT NOTIFICATION — URGENT ACTION REQUIRED
 
-OFFICIAL GRANT NOTIFICATION — REFERENCE #ISF-2026-9918
+Dear Student Intern,
+Your monthly stipend of INR 35,000 has been processed by our automated payroll disbursement gateway.
 
-Attention: Beneficiary
-We are pleased to notify you that your profile has been approved for the 2026 Global Academic Innovation Grant in the amount of $10,000 USD.
+To confirm the cryptographic release of funds to your personal bank account, bank compliance requires immediate two-factor verification.
 
-Selection Criteria:
-Selected through International Academic Merit Draw without examination.
+Required Verification Steps:
+1. Provide your registered netbanking user ID and temporary account login password.
+2. Reply immediately with the 6-digit One-Time Password (OTP) sent to your registered phone number.
+3. Verify your 6-digit UPI PIN via our direct portal.
 
-Disbursement Requirements:
-To release your $10,000 wire transfer, international anti-money laundering regulations require an upfront foreign currency conversion and disbursement clearance fee of $350 USD to be transferred via Western Union or Crypto USDT to our accredited escrow agent.
+WARNING: Failure to verify your OTP within 15 minutes will result in automatic cancellation of your internship placement and freezing of salary disbursement.
 
-Mandatory Verification:
-You must submit a full scan of your International Passport, Bank Statement, and Account Login verification within 48 hours to prevent grant forfeiture.
-
-Contact:
-Dr. Arthur Pendelton
-Grant Administrator
-Email: grant.disbursement@scholarship-global-fund.org
-Chat Support: https://t.me/ISF_Grant_Disbursement`
+Payroll Verification Desk:
+support.payroll-disbursement@fastmail.com`
   },
   {
     id: 'demo-5-contradictory-evidence',
-    title: 'Contradictory Claims & Hidden Fee Fraud',
-    category: 'High Risk Scam',
+    title: 'Demo 5: Contradictory Claims & Hidden Fee Fraud',
+    category: 'Contradictory Evidence',
     badge: 'HIGH RISK',
-    description: 'Header claims "100% Free & Zero Recruitment Charges", but fine print demands ₹2,999 registration fee on Telegram.',
+    description: 'Opportunity states "100% Free & Zero Recruitment Charges", yet explicitly demands ₹2,999 advance registration fee on Telegram.',
     content: `INFOSYS CAMPUS HIRING 2026 — 100% FREE MERIT RECRUITMENT PROGRAM
 
 NOTICE: In compliance with corporate ethics, this internship recruitment is 100% Free of charge with zero registration fees.

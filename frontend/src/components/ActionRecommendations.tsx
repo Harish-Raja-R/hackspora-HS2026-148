@@ -8,7 +8,7 @@ import {
   Compass,
   ArrowRight
 } from 'lucide-react';
-import { RecommendedAction } from '../types/investigation.js';
+import { RecommendedAction } from '../types/investigation';
 
 interface ActionRecommendationsProps {
   action: RecommendedAction;
