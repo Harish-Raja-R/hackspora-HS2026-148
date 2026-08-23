@@ -3,6 +3,7 @@
 > **Verify before you trust.**  
 > *AI-powered opportunity intelligence and multi-signal threat verification for internships, jobs, scholarships, and online offers.*
 
+[![Live Production App](https://img.shields.io/badge/Render-Live%20Production%20App-00C7B7?style=for-the-badge&logo=render&logoColor=white)](https://scamcheck-5oqb.onrender.com)
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Harish-Raja-R/hackspora-HS2026-148)
 
 ---
