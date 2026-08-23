@@ -3,6 +3,8 @@
 > **Verify before you trust.**  
 > *AI-powered opportunity intelligence and multi-signal threat verification for internships, jobs, scholarships, and online offers.*
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Harish-Raja-R/hackspora-HS2026-148)
+
 ---
 
 ## Overview
