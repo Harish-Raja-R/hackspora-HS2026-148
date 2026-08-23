@@ -225,6 +225,44 @@ export interface ScoreWaterfallDriver {
   category: string;
 }
 
+// ----------------------------------------------------
+// PROMPT 6 EXTERNAL VERIFICATION INTERFACES
+// ----------------------------------------------------
+
+export type VerificationClaimStatus =
+  | 'VERIFIED'
+  | 'CONSISTENT'
+  | 'UNVERIFIED'
+  | 'MISMATCH'
+  | 'NOT_CHECKED'
+  | 'UNAVAILABLE';
+
+export interface VerificationClaim {
+  claim: string;
+  submitted: string;
+  external: string;
+  status: VerificationClaimStatus;
+  rationale: string;
+}
+
+export interface ExternalEvidenceItem {
+  source: string;
+  finding: string;
+  badge: 'EXTERNAL_SOURCE' | 'USER_SUBMITTED';
+}
+
+export interface VerificationCenterData {
+  claims: VerificationClaim[];
+  evidenceVerificationPercent: number; // % of claims that could be independently checked
+  officialDomain: string;
+  submittedDomain: string;
+  domainStatus: 'MATCH' | 'MISMATCH' | 'LOOKALIKE' | 'UNVERIFIED';
+  websiteAvailability: 'REACHABLE' | 'UNREACHABLE' | 'TIMEOUT' | 'UNAVAILABLE';
+  opportunityExistence: 'FOUND_ON_OFFICIAL_SOURCE' | 'NOT_FOUND' | 'SEARCH_UNAVAILABLE' | 'NOT_CHECKED';
+  diyVerificationSteps: string[];
+  externalEvidenceItems: ExternalEvidenceItem[];
+}
+
 export interface InvestigationReport {
   id: string;
   timestamp: string;
@@ -260,6 +298,9 @@ export interface InvestigationReport {
   manipulationSignals?: ManipulationSignal[];
   falsePositiveContext?: FalsePositiveContext[];
   scoreDrivers?: ScoreWaterfallDriver[];
+
+  // External Verification Center (Prompt 6)
+  verificationCenter?: VerificationCenterData;
 }
 
 export interface ComparisonReport {

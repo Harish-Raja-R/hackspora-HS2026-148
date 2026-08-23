@@ -39,6 +39,9 @@ import { WhatIfSimulator } from './WhatIfSimulator';
 import { LegitimacyCheckView } from './LegitimacyCheckView';
 import { ScoreWaterfallView } from './ScoreWaterfallView';
 
+// Prompt 6 External Threat Intelligence & Verification Center
+import { VerificationCenter } from './VerificationCenter';
+
 interface InvestigationReportProps {
   report: InvestigationReport;
   onReset: () => void;
@@ -320,6 +323,9 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
 
       {/* PROMPT 5 FEATURE: OPPORTUNITY TRUST PROFILE */}
       <TrustProfileView profile={report.trustProfile} />
+
+      {/* PROMPT 6 FEATURE: EXTERNAL THREAT INTELLIGENCE & VERIFICATION CENTER */}
+      <VerificationCenter data={report.verificationCenter} />
 
       {/* 5. RISK BREAKDOWN — 6 INTERACTIVE CATEGORY DIMENSIONS (Section 5) */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">

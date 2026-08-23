@@ -17,8 +17,10 @@ import {
   LegitimacyCheck,
   ManipulationSignal,
   FalsePositiveContext,
-  ScoreWaterfallDriver
+  ScoreWaterfallDriver,
+  VerificationCenterData
 } from './types.js';
+import { verifyOpportunityClaims } from './externalVerifier.js';
 
 export function aggregateInvestigation(
   inputSnippet: string,
@@ -505,6 +507,9 @@ export function aggregateInvestigation(
     legitimacyCheck,
     manipulationSignals,
     falsePositiveContext,
-    scoreDrivers
+    scoreDrivers,
+
+    // Prompt 6 External Verification Center
+    verificationCenter: verifyOpportunityClaims(entities, orgConsistency, inputSnippet)
   };
 }

@@ -6,6 +6,7 @@ import { evaluateConfidence } from '../backend/src/engine/confidenceEngine.js';
 import { aggregateInvestigation } from '../backend/src/engine/riskAggregator.js';
 import { normalizeOcrText } from '../backend/src/parsers/ocrParser.js';
 import { analyzeUrlTarget } from '../backend/src/parsers/urlParser.js';
+import { checkLookalikeDomain, verifyOpportunityClaims } from '../backend/src/engine/externalVerifier.js';
 
 let passedTests = 0;
 let failedTests = 0;
@@ -21,7 +22,7 @@ function assert(condition: boolean, testName: string, detail?: string) {
 }
 
 console.log('\n====================================================');
-console.log('🧪 RUNNING SCAMCHECK FULL DIFFERENTIATION SUITE (PROMPT 5)');
+console.log('🧪 RUNNING SCAMCHECK EXTERNAL THREAT INTELLIGENCE SUITE (PROMPT 6)');
 console.log('====================================================\n');
 
 // ----------------------------------------------------
@@ -59,6 +60,8 @@ assert(t1Report.opportunityDna !== undefined, 'Generated Opportunity DNA Profile
 assert(t1Report.opportunityDna?.consistencyFingerprint.contact === 'MISMATCH', 'DNA contact is MISMATCH');
 assert(t1Report.opportunityDna?.consistencyFingerprint.payment === 'MISMATCH', 'DNA payment is MISMATCH');
 assert(t1Report.contradictions && t1Report.contradictions.length > 0, 'Contradiction Engine detected corporate brand vs public email conflict');
+assert(t1Report.verificationCenter !== undefined, 'Generated Verification Center Data');
+assert(t1Report.verificationCenter?.officialDomain === 'google.com', 'Cross-referenced official domain as google.com');
 
 // ----------------------------------------------------
 // TEST 2 — LEGITIMATE-LOOKING (Official Google Careers)
@@ -110,6 +113,7 @@ assert(t2Consistency.recruiterDomainStatus === 'OFFICIAL_MATCH', 'Recruiter doma
 assert(t2Report.recommendedAction.primaryVerdict === 'PROCEED_WITH_CAUTION', 'Recommendation is PROCEED_WITH_CAUTION');
 assert(t2Report.legitimacyCheck && t2Report.legitimacyCheck.positiveIndicators.length >= 2, 'Legitimacy Check captures positive anchors');
 assert(t2Report.trustProfile?.financialSafety === 100, 'Trust Profile financial safety is 100%');
+assert(t2Report.verificationCenter?.opportunityExistence === 'FOUND_ON_OFFICIAL_SOURCE', 'Opportunity route verified on official source');
 
 // ----------------------------------------------------
 // TEST 3 — AMBIGUOUS OFFER (Startup Incomplete Web Footprint)
@@ -301,7 +305,7 @@ const t10Report = aggregateInvestigation(
 assert(t10Report.riskScore <= 100 && t10Report.riskScore >= 65, 'Clustering dampener bounds score rationally', `Got: ${t10Report.riskScore}`);
 
 // ----------------------------------------------------
-// TEST 11 — OCR TEXT NORMALIZATION (MULTI-MODAL OCR)
+// TEST 11 — MULTI-MODAL OCR TEXT NORMALIZATION
 // ----------------------------------------------------
 console.log('\n▶ TEST 11: Multi-Modal OCR Text Normalization');
 const rawOcrNoise = 'Congratulations! Pay ₹ 2 , 999 fee to hr . tcs @ gmail . com within 24 hours .';
@@ -310,9 +314,38 @@ assert(cleanedOcr.includes('₹2,999'), 'OCR normalizer cleaned currency spacing
 assert(cleanedOcr.includes('@gmail.com'), 'OCR normalizer cleaned email spacing', `Got: ${cleanedOcr}`);
 
 // ----------------------------------------------------
-// TEST 12 — URL SECURITY HEURISTICS (MULTI-MODAL URL)
+// TEST 12 — TYPOSQUATTING & LOOK-ALIKE HEURISTIC DETECTION (PROMPT 6)
 // ----------------------------------------------------
-console.log('\n▶ TEST 12: URL Security Heuristics');
+console.log('\n▶ TEST 12: Typosquatting & Look-alike Domain Detection');
+const lookalike1 = checkLookalikeDomain('google-careers-example.com', 'google');
+assert(lookalike1.isLookalike === true, 'Detected hyphenated look-alike domain google-careers-example.com');
+
+const lookalike2 = checkLookalikeDomain('micros0ft.com', 'microsoft');
+assert(lookalike2.isLookalike === true, 'Detected l33t character substitution micros0ft.com');
+
+const officialDirect = checkLookalikeDomain('careers.google.com', 'google');
+assert(officialDirect.isLookalike === false, 'Did not falsely flag official subdomain careers.google.com');
+
+// ----------------------------------------------------
+// TEST 13 — VERIFICATION CENTER MATRIX & DIY PLAYBOOK (PROMPT 6)
+// ----------------------------------------------------
+console.log('\n▶ TEST 13: Verification Center Claims Matrix & DIY Playbook');
+const fakeDemoText =
+  'Selected for TCS Developer Internship. Pay ₹2,999 fee. Apply at http://tcs-careers-fake.com. Contact hr.tcs@gmail.com';
+const fakeEnt = extractEntities(fakeDemoText);
+const fakeCons = evaluateOrgConsistency(fakeDemoText, fakeEnt);
+const verData = verifyOpportunityClaims(fakeEnt, fakeCons, fakeDemoText);
+
+assert(verData.claims.length >= 4, 'Constructed claims verification matrix', `Claims: ${verData.claims.length}`);
+assert(verData.officialDomain === 'tcs.com', 'Resolved official domain to tcs.com');
+assert(verData.domainStatus === 'LOOKALIKE' || verData.domainStatus === 'MISMATCH', 'Identified fake domain mismatch');
+assert(verData.diyVerificationSteps.length >= 4, 'Generated DIY verification action guide');
+assert(verData.evidenceVerificationPercent >= 50, 'Computed evidence verification percentage', `Got: ${verData.evidenceVerificationPercent}%`);
+
+// ----------------------------------------------------
+// TEST 14 — URL SECURITY HEURISTICS
+// ----------------------------------------------------
+console.log('\n▶ TEST 14: URL Security Heuristics');
 async function testUrlAnalysis() {
   const phishingUrl = 'http://google.com.careers-portal.xyz/apply';
   const urlRes = await analyzeUrlTarget(phishingUrl);
@@ -328,6 +361,6 @@ testUrlAnalysis().then(() => {
   if (failedTests > 0) {
     process.exit(1);
   } else {
-    console.log('🎉 ALL PROMPT 5 JUDGE-KILLER DIFFERENTIATION TESTS PASSED PERFECTLY!\n');
+    console.log('🎉 ALL PROMPT 6 EXTERNAL THREAT INTELLIGENCE TESTS PASSED PERFECTLY!\n');
   }
 });

@@ -175,7 +175,7 @@ export interface OpportunityDna {
   payment: string;
   urgency: string;
   selection: string;
-  evidenceCompleteness: number; // 0 - 100%
+  evidenceCompleteness: number;
   consistencyFingerprint: {
     organization: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
     recruiter: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
@@ -186,11 +186,11 @@ export interface OpportunityDna {
 }
 
 export interface TrustProfile {
-  identityConsistency: number; // 0 - 100
-  contactConsistency: number;  // 0 - 100
-  processConsistency: number;  // 0 - 100
-  financialSafety: number;     // 0 - 100
-  evidenceStrength: number;    // 0 - 100 (separate from legitimacy)
+  identityConsistency: number;
+  contactConsistency: number;
+  processConsistency: number;
+  financialSafety: number;
+  evidenceStrength: number;
 }
 
 export interface Contradiction {
@@ -223,6 +223,44 @@ export interface ScoreWaterfallDriver {
   name: string;
   delta: number;
   category: string;
+}
+
+// ----------------------------------------------------
+// PROMPT 6 EXTERNAL VERIFICATION INTERFACES
+// ----------------------------------------------------
+
+export type VerificationClaimStatus =
+  | 'VERIFIED'
+  | 'CONSISTENT'
+  | 'UNVERIFIED'
+  | 'MISMATCH'
+  | 'NOT_CHECKED'
+  | 'UNAVAILABLE';
+
+export interface VerificationClaim {
+  claim: string;
+  submitted: string;
+  external: string;
+  status: VerificationClaimStatus;
+  rationale: string;
+}
+
+export interface ExternalEvidenceItem {
+  source: string;
+  finding: string;
+  badge: 'EXTERNAL_SOURCE' | 'USER_SUBMITTED';
+}
+
+export interface VerificationCenterData {
+  claims: VerificationClaim[];
+  evidenceVerificationPercent: number;
+  officialDomain: string;
+  submittedDomain: string;
+  domainStatus: 'MATCH' | 'MISMATCH' | 'LOOKALIKE' | 'UNVERIFIED';
+  websiteAvailability: 'REACHABLE' | 'UNREACHABLE' | 'TIMEOUT' | 'UNAVAILABLE';
+  opportunityExistence: 'FOUND_ON_OFFICIAL_SOURCE' | 'NOT_FOUND' | 'SEARCH_UNAVAILABLE' | 'NOT_CHECKED';
+  diyVerificationSteps: string[];
+  externalEvidenceItems: ExternalEvidenceItem[];
 }
 
 export interface InvestigationReport {
@@ -260,6 +298,9 @@ export interface InvestigationReport {
   manipulationSignals?: ManipulationSignal[];
   falsePositiveContext?: FalsePositiveContext[];
   scoreDrivers?: ScoreWaterfallDriver[];
+
+  // External Verification Center (Prompt 6)
+  verificationCenter?: VerificationCenterData;
 }
 
 export interface ComparisonReport {
