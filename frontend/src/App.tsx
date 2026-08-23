@@ -173,6 +173,14 @@ export function App() {
                   setActiveReport(null);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
+                onOpenHistory={() => {
+                  setActiveTab('history');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                onOpenCompare={() => {
+                  setActiveTab('compare');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
               />
             )}
           </>

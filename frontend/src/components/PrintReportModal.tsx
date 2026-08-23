@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Printer, ShieldCheck } from 'lucide-react';
-import { InvestigationReport } from '../types/investigation.js';
+import { InvestigationReport } from '../types/investigation';
 
 interface PrintReportModalProps {
   report: InvestigationReport;
@@ -12,13 +12,22 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({ report, onCl
     window.print();
   };
 
+  const categoryRisks = report.categoryRisks || {
+    financial: 0,
+    identity: 0,
+    communication: 0,
+    urgency: 0,
+    credential: 0,
+    organization: 0
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div className="bg-[#0b0e14] border border-slate-700 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 text-slate-100 shadow-2xl relative">
         {/* Action Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800 no-print">
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800/40">
+            <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950 px-2.5 py-1 rounded border border-cyan-800/40">
               OFFICIAL INVESTIGATION BRIEF
             </span>
           </div>
@@ -57,15 +66,22 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({ report, onCl
             </div>
 
             <div className="text-right font-mono text-xs text-slate-400">
-              <div>CASE ID: <strong>{report.id}</strong></div>
+              <div>CASE ID: <strong className="text-slate-200">{report.id}</strong></div>
               <div>DATE: {new Date(report.timestamp).toLocaleString()}</div>
             </div>
+          </div>
+
+          {/* Target Opportunity */}
+          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
+            <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">Opportunity Analyzed:</div>
+            <div className="text-lg font-bold text-white font-['Outfit']">{report.extractedOpportunity.jobTitle}</div>
+            <div className="text-xs text-slate-300 font-mono">Claimed Organization: <strong>{report.extractedOpportunity.organization}</strong> | Type: <strong>{report.extractedOpportunity.opportunityType}</strong></div>
           </div>
 
           {/* Risk & Confidence Summary */}
           <div className="grid grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
             <div>
-              <div className="text-[10px] font-mono text-slate-400 uppercase">Risk Tier</div>
+              <div className="text-[10px] font-mono text-slate-400 uppercase">Risk Level</div>
               <div className="text-lg font-bold text-cyan-300 font-mono mt-0.5">{report.riskTier}</div>
             </div>
             <div>
@@ -81,11 +97,26 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({ report, onCl
           {/* Executive Assessment */}
           <div className="space-y-1.5">
             <h3 className="text-xs font-mono font-bold uppercase text-cyan-400">
-              Executive Threat Assessment
+              AI Security Assessment // Executive Summary
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
-              {report.executiveAssessment}
+              {report.summary || report.executiveAssessment}
             </p>
+          </div>
+
+          {/* 6 Category Risk Dimensions */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-mono font-bold uppercase text-cyan-400">
+              Threat Breakdown (Category Dimensions)
+            </h3>
+            <div className="grid grid-cols-3 gap-2 text-xs font-mono bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+              <div>Financial: <strong>{categoryRisks.financial}/100</strong></div>
+              <div>Urgency: <strong>{categoryRisks.urgency}/100</strong></div>
+              <div>Identity: <strong>{categoryRisks.identity}/100</strong></div>
+              <div>Organization: <strong>{categoryRisks.organization}/100</strong></div>
+              <div>Communication: <strong>{categoryRisks.communication}/100</strong></div>
+              <div>Credentials: <strong>{categoryRisks.credential}/100</strong></div>
+            </div>
           </div>
 
           {/* Opportunity Blueprint */}
@@ -139,6 +170,16 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({ report, onCl
               ))}
             </ul>
           </div>
+
+          {/* Limitations */}
+          {report.limitations && report.limitations.length > 0 && (
+            <div className="space-y-1 text-xs font-mono text-slate-400 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+              <div className="text-[10px] text-slate-500 uppercase font-bold">Assessment Limitations:</div>
+              {report.limitations.map((lim, i) => (
+                <div key={i}>• {lim}</div>
+              ))}
+            </div>
+          )}
 
           {/* Legal Disclaimer */}
           <div className="text-[10px] text-slate-500 font-mono leading-relaxed pt-2 border-t border-slate-800">

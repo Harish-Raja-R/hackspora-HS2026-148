@@ -154,7 +154,9 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
   for (const reg of feeRegexes) {
     const m = text.match(reg);
     if (m && !isAntiFeeDisclaimer && isFeeContext) {
-      paymentAmount = m[0].trim();
+      let rawAmount = m[0].trim();
+      rawAmount = rawAmount.replace(/^(?:pay|deposit|transfer|send|require|requires|an?|upfront|refundable)\s+/i, '').trim();
+      paymentAmount = rawAmount;
       paymentRequested = true;
       break;
     }
