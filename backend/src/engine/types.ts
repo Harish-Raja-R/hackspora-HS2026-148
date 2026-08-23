@@ -17,40 +17,65 @@ export type SignalCategory =
   | 'PROCEDURE'
   | 'CONSISTENCY'
   | 'PSYCHOLOGICAL'
-  | 'TRUST';
+  | 'TRUST'
+  | 'CREDENTIAL'
+  | 'URGENCY'
+  | 'ORGANIZATION';
 
 export type RiskTier = 'LOW RISK' | 'NEEDS VERIFICATION' | 'HIGH RISK';
+export type RiskLevel = 'LOW' | 'NEEDS_VERIFICATION' | 'HIGH';
 
 export type ExposureLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
 
+export interface CategoryRisks {
+  financial: number;      // 0 - 100
+  identity: number;       // 0 - 100
+  communication: number;  // 0 - 100
+  urgency: number;        // 0 - 100
+  credential: number;     // 0 - 100
+  organization: number;   // 0 - 100
+}
+
 export interface ExtractedOpportunity {
+  title: string;
+  jobTitle: string;
   organization: string;
   recruiter: string;
+  email: string;
   recruiterEmail: string;
+  phone: string;
   phoneNumber: string;
   website: string;
+  url: string;
   opportunityUrl: string;
+  type: OpportunityType;
   opportunityType: OpportunityType;
-  jobTitle: string;
+  location: string;
+  compensation: string;
   salaryStipend: string;
+  paymentRequested: boolean;
   paymentAmount: string;
+  paymentReason: string;
   paymentPurpose: string;
+  deadline: string;
   deadlines: string;
   requestedDocuments: string[];
   requestedCredentials: string[];
-  location: string;
   communicationPlatform: string;
   applicationMethod: string;
   claims: string[];
 }
 
 export interface ScamSignal {
+  id: string;
   signalId: string;
   name: string;
   severity: SignalSeverity;
   category: SignalCategory;
   evidence: string;
   weight: number;
+  riskContribution: number;
+  explanation: string;
   whyItMatters: string;
   mitigation: string;
 }
@@ -95,15 +120,20 @@ export interface OrgConsistencyVector {
 }
 
 export interface PotentialExposure {
+  financial: ExposureLevel;
   financialAmount: string;
   financialLevel: ExposureLevel;
   financialNotes: string;
+  credential: ExposureLevel;
   credentialLevel: ExposureLevel;
   credentialNotes: string;
+  identity: ExposureLevel;
   identityLevel: ExposureLevel;
   identityNotes: string;
+  employment: ExposureLevel;
   employmentLevel: ExposureLevel;
   employmentNotes: string;
+  privacy: ExposureLevel;
   privacyLevel: ExposureLevel;
   privacyNotes: string;
 }
@@ -123,23 +153,39 @@ export interface UncertaintyHandling {
   guidanceToAcquire: string[];
 }
 
+export interface InvestigationStep {
+  step: number;
+  name: string;
+  status: 'COMPLETED' | 'IN_PROGRESS' | 'SKIPPED';
+  detail: string;
+  timestamp: string;
+}
+
 export interface InvestigationReport {
   id: string;
   timestamp: string;
   inputSnippet: string;
   inputMode: 'text' | 'document' | 'image' | 'url';
   riskScore: number;
-  riskTier: RiskTier;
   confidenceScore: number;
+  riskLevel: RiskLevel;
+  riskTier: RiskTier;
   confidenceRationale: string;
+  summary: string;
   executiveAssessment: string;
+  recommendation: string;
+  categoryRisks: CategoryRisks;
+  opportunity: ExtractedOpportunity;
   extractedOpportunity: ExtractedOpportunity;
   signals: ScamSignal[];
+  evidence: EvidenceNode[];
   evidenceChain: EvidenceNode[];
   orgConsistency: OrgConsistencyVector;
   potentialExposure: PotentialExposure;
   recommendedAction: RecommendedAction;
   uncertainty: UncertaintyHandling;
+  limitations: string[];
+  investigationSteps: InvestigationStep[];
   disclaimer: string;
 }
 

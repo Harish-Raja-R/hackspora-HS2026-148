@@ -1,13 +1,16 @@
 import {
   InvestigationReport,
   RiskTier,
+  RiskLevel,
   ExtractedOpportunity,
   ScamSignal,
   EvidenceNode,
   OrgConsistencyVector,
   PotentialExposure,
   RecommendedAction,
-  UncertaintyHandling
+  UncertaintyHandling,
+  CategoryRisks,
+  InvestigationStep
 } from './types.js';
 
 export function aggregateInvestigation(
@@ -21,12 +24,34 @@ export function aggregateInvestigation(
   confidenceRationale: string,
   uncertainty: UncertaintyHandling
 ): InvestigationReport {
-  // 1. Calculate Weighted Risk Score
-  let rawScore = 10; // baseline ambient risk
+  // 1. Calculate Clustered Risk Score with Anti-Double-Counting Dampener
+  let rawScore = 5; // ambient baseline
 
-  for (const signal of signals) {
-    rawScore += signal.weight;
+  // Group positive scam weights by category cluster to prevent redundant double counting
+  const clusters: { [cat: string]: number[] } = {};
+  let positiveTrustOffset = 0;
+
+  for (const sig of signals) {
+    if (sig.weight > 0) {
+      const cat = sig.category;
+      if (!clusters[cat]) clusters[cat] = [];
+      clusters[cat].push(sig.weight);
+    } else {
+      // Trust signal (negative weight)
+      positiveTrustOffset += sig.weight;
+    }
   }
+
+  // Calculate cluster weights: Highest signal in cluster is 100%, secondary signals are 40%
+  for (const cat of Object.keys(clusters)) {
+    const weights = clusters[cat].sort((a, b) => b - a);
+    const primary = weights[0] || 0;
+    const secondary = weights.slice(1).reduce((acc, w) => acc + w * 0.4, 0);
+    rawScore += primary + secondary;
+  }
+
+  // Apply positive trust reducers
+  rawScore += positiveTrustOffset;
 
   // If critical scam vectors detected, ensure score reaches HIGH RISK tier floor
   const hasCriticalScam = signals.some((s) => s.severity === 'CRITICAL');
@@ -48,17 +73,38 @@ export function aggregateInvestigation(
   // Bound to 0 - 100
   const riskScore = Math.max(0, Math.min(100, Math.round(rawScore)));
 
-  // 2. Classify Risk Tier
+  // 2. Classify Risk Tier & Risk Level
   let riskTier: RiskTier = 'LOW RISK';
+  let riskLevel: RiskLevel = 'LOW';
   if (riskScore >= 61) {
     riskTier = 'HIGH RISK';
+    riskLevel = 'HIGH';
   } else if (riskScore >= 31) {
     riskTier = 'NEEDS VERIFICATION';
+    riskLevel = 'NEEDS_VERIFICATION';
   } else {
     riskTier = 'LOW RISK';
+    riskLevel = 'LOW';
   }
 
-  // 3. Assemble Evidence Chain Nodes
+  // 3. Calculate 6 Category Risk Dimensions (0 - 100 each)
+  const calculateCategoryRisk = (category: string, relatedSignals: ScamSignal[]): number => {
+    const catSigs = relatedSignals.filter((s) => s.category === category && s.weight > 0);
+    if (catSigs.length === 0) return 0;
+    const sum = catSigs.reduce((acc, s) => acc + s.weight, 0);
+    return Math.min(100, Math.round((sum / 35) * 100));
+  };
+
+  const categoryRisks: CategoryRisks = {
+    financial: Math.min(100, calculateCategoryRisk('FINANCIAL', signals) + (entities.paymentRequested ? 30 : 0)),
+    identity: Math.min(100, calculateCategoryRisk('IDENTITY', signals) + (entities.requestedDocuments.length > 0 ? 25 : 0)),
+    communication: Math.min(100, calculateCategoryRisk('COMMUNICATION', signals) + (orgConsistency.recruiterDomainStatus === 'PUBLIC_FREE_EMAIL' ? 25 : 0)),
+    urgency: Math.min(100, calculateCategoryRisk('URGENCY', signals) + (entities.deadlines !== 'Not detected' ? 20 : 0) + (calculateCategoryRisk('PSYCHOLOGICAL', signals) * 0.5)),
+    credential: Math.min(100, calculateCategoryRisk('CREDENTIAL', signals) + (entities.requestedCredentials.length > 0 ? 60 : 0)),
+    organization: Math.min(100, calculateCategoryRisk('ORGANIZATION', signals) + (orgConsistency.overallConsistency === 'SEVERE_MISMATCH' ? 70 : orgConsistency.overallConsistency === 'PARTIAL_INCONSISTENCY' ? 40 : 0))
+  };
+
+  // 4. Assemble Evidence Chain Nodes
   const evidenceChain: EvidenceNode[] = signals.map((s, idx) => ({
     id: `EV-NODE-${idx + 1}`,
     finding: s.name,
@@ -69,7 +115,7 @@ export function aggregateInvestigation(
     category: s.category
   }));
 
-  // 4. Formulate Tier-Specific Recommended Action Playbook
+  // 5. Formulate Tier-Specific Recommended Action Playbook
   let recommendedAction: RecommendedAction;
 
   if (riskTier === 'HIGH RISK') {
@@ -77,8 +123,12 @@ export function aggregateInvestigation(
       primaryVerdict: 'STOP',
       headline: 'CRITICAL THREAT DETECTED: Cease Engagement Immediately',
       actionSteps: [
-        'DO NOT transfer any funds, registration fees, laptop deposits, or training charges.',
-        'DO NOT share OTPs, banking credentials, UPI PINs, or national identity card scans (Aadhaar/PAN/SSN).',
+        entities.paymentRequested
+          ? `DO NOT make the requested payment (${entities.paymentAmount !== 'Not detected' ? entities.paymentAmount : 'advance fee'}) to secure this position.`
+          : 'DO NOT transfer any funds, registration fees, laptop deposits, or training charges.',
+        entities.requestedCredentials.length > 0
+          ? 'DO NOT provide passwords, OTPs, banking credentials, or UPI PINs.'
+          : 'DO NOT share OTPs, passwords, or national identity card scans (Aadhaar/PAN/SSN).',
         'Cease communication across unofficial channels (Telegram, WhatsApp, SMS).',
         'Verify the opportunity independently by navigating directly to the official company careers portal.',
         'Report the fraudulent recruiter profile and contact handles to cybercrime authorities and the host platform.'
@@ -134,7 +184,38 @@ export function aggregateInvestigation(
     };
   }
 
-  // 5. Formulate Concise Executive Assessment
+  // 6. Formulate Grounded AI Summary
+  let summary = '';
+  if (riskTier === 'HIGH RISK') {
+    const keyReasons: string[] = [];
+    if (entities.paymentRequested) {
+      if (entities.paymentAmount !== 'Not detected') {
+        keyReasons.push(`requests a ${entities.paymentAmount} payment for ${entities.paymentReason !== 'Not detected' ? entities.paymentReason : 'registration'}`);
+      } else {
+        keyReasons.push(`requests an advance payment for ${entities.paymentReason !== 'Not detected' ? entities.paymentReason : 'registration'}`);
+      }
+    }
+    if (orgConsistency.recruiterDomainStatus === 'PUBLIC_FREE_EMAIL' || orgConsistency.recruiterDomainStatus === 'DOMAIN_MISMATCH') {
+      keyReasons.push(`uses a public or mismatched email address (${entities.recruiterEmail}) while claiming affiliation with ${entities.organization !== 'Not detected' ? entities.organization : 'an enterprise'}`);
+    }
+    if (entities.deadlines !== 'Not detected') {
+      keyReasons.push(`imposes strict deadline pressure ("${entities.deadlines}")`);
+    }
+    if (entities.requestedCredentials.length > 0) {
+      keyReasons.push(`attempts to harvest sensitive authentication credentials (${entities.requestedCredentials.join(', ')})`);
+    }
+    if (keyReasons.length === 0) {
+      keyReasons.push(`triggers multiple high-risk indicators (${signals.slice(0, 2).map((s) => s.name).join(', ')})`);
+    }
+
+    summary = `The opportunity presents a high level of risk primarily because it ${keyReasons.join(', ')}.`;
+  } else if (riskTier === 'NEEDS VERIFICATION') {
+    summary = `The opportunity presents moderate ambiguity. While no direct financial extortion was triggered, the submission lacks independent cryptographic corporate domain verification and requires confirmation through official channels.`;
+  } else {
+    summary = `The opportunity aligns with verified enterprise hiring practices, featuring structured multi-stage evaluation, authenticated official domains, and zero candidate financial obligations.`;
+  }
+
+  // 7. Formulate Executive Assessment
   let executiveAssessment = '';
   if (riskTier === 'HIGH RISK') {
     const criticalCount = signals.filter((s) => s.severity === 'CRITICAL').length;
@@ -145,25 +226,84 @@ export function aggregateInvestigation(
     executiveAssessment = `Investigation classified this opportunity as LOW RISK (${riskScore}/100) with ${confidenceScore}% confidence. Opportunity attributes align with legitimate enterprise talent acquisition standards, verified domain infrastructure, and conventional screening protocols with zero candidate financial liability.`;
   }
 
+  // 8. Generate Structured Investigation Steps
+  const now = new Date().toISOString();
+  const investigationSteps: InvestigationStep[] = [
+    {
+      step: 1,
+      name: 'Content Ingestion & Normalization',
+      status: 'COMPLETED',
+      detail: `Sanitized and tokenized ${inputSnippet.length} characters of ${inputMode.toUpperCase()} input.`,
+      timestamp: now
+    },
+    {
+      step: 2,
+      name: 'Entity Extraction & Blueprint Mapping',
+      status: 'COMPLETED',
+      detail: `Extracted: Org='${entities.organization}', Role='${entities.jobTitle}', Payment='${entities.paymentAmount}'.`,
+      timestamp: now
+    },
+    {
+      step: 3,
+      name: 'Deterministic Pattern Detection',
+      status: 'COMPLETED',
+      detail: `Scanned 22+ rules; detected ${signals.length} signals (${signals.filter((s) => s.severity === 'CRITICAL').length} critical).`,
+      timestamp: now
+    },
+    {
+      step: 4,
+      name: 'Organization Consistency & Exposure Audit',
+      status: 'COMPLETED',
+      detail: `Consistency='${orgConsistency.overallConsistency}', Financial Exposure='${potentialExposure.financialLevel}'.`,
+      timestamp: now
+    },
+    {
+      step: 5,
+      name: 'Hybrid Risk & Confidence Synthesis',
+      status: 'COMPLETED',
+      detail: `Calibrated Risk=${riskScore}/100 (${riskTier}), Confidence=${confidenceScore}%.`,
+      timestamp: now
+    },
+    {
+      step: 6,
+      name: 'Action Playbook Generation',
+      status: 'COMPLETED',
+      detail: `Verdict='${recommendedAction.primaryVerdict}': ${recommendedAction.headline}`,
+      timestamp: now
+    }
+  ];
+
   const reportId = `SC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+  const limitations = uncertainty.missingEvidence.length > 0
+    ? uncertainty.missingEvidence
+    : ['Analysis is constrained to the submitted text and publicly indexable corporate registry records.'];
 
   return {
     id: reportId,
-    timestamp: new Date().toISOString(),
+    timestamp: now,
     inputSnippet: inputSnippet.length > 300 ? inputSnippet.substring(0, 297) + '...' : inputSnippet,
     inputMode,
     riskScore,
-    riskTier,
     confidenceScore,
+    riskLevel,
+    riskTier,
     confidenceRationale,
+    summary,
     executiveAssessment,
+    recommendation: recommendedAction.headline,
+    categoryRisks,
+    opportunity: entities,
     extractedOpportunity: entities,
     signals,
+    evidence: evidenceChain,
     evidenceChain,
     orgConsistency,
     potentialExposure,
     recommendedAction,
     uncertainty,
+    limitations,
+    investigationSteps,
     disclaimer:
       'ScamCheck provides algorithmic risk indicators and intelligence signals based on submitted evidence, not definitive legal proof of fraud. High-impact academic, financial, and career decisions should always be cross-referenced with independent primary sources.'
   };

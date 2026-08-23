@@ -35,7 +35,7 @@ export function calculatePotentialExposure(
 
   if (entities.requestedDocuments.length > 0) {
     const highRiskDocs = entities.requestedDocuments.filter((d) =>
-      ['Aadhaar Card', 'PAN Card', 'Social Security Number (SSN)', 'Debit / Credit Card Scan', 'Bank Statement / Cheque'].includes(d)
+      ['Aadhaar Card', 'PAN Card', 'Social Security Number (SSN)', 'Debit / Credit Card Scan', 'Bank Statement / Cheque', 'Passport Copy'].includes(d)
     );
     if (highRiskDocs.length > 0) {
       identityLevel = 'HIGH';
@@ -71,15 +71,20 @@ export function calculatePotentialExposure(
   }
 
   return {
+    financial: financialLevel,
     financialAmount,
     financialLevel,
     financialNotes,
+    credential: credentialLevel,
     credentialLevel,
     credentialNotes,
+    identity: identityLevel,
     identityLevel,
     identityNotes,
+    employment: employmentLevel,
     employmentLevel,
     employmentNotes,
+    privacy: privacyLevel,
     privacyLevel,
     privacyNotes
   };

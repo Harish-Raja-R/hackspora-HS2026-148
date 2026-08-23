@@ -58,6 +58,7 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
           !candidate.toLowerCase().includes('dear') &&
           !candidate.toLowerCase().includes('candidate') &&
           !candidate.toLowerCase().includes('applicant') &&
+          !candidate.toLowerCase().includes('congratulations') &&
           candidate.length < 40
         ) {
           organization = candidate;
@@ -102,7 +103,7 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
     }
   }
   if (jobTitle === 'Not detected' && opportunityType !== 'Unspecified') {
-    jobTitle = `${opportunityType} Role`;
+    jobTitle = `${opportunityType} Opportunity`;
   }
 
   // 8. Detect Recruiter Name
@@ -119,12 +120,12 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
     }
   }
 
-  // 9. Detect Compensation / Salary / Stipend
+  // 9. Detect Compensation / Salary / Stipend (Paid TO candidate)
   let salaryStipend = 'Not detected';
   const salaryRegexes = [
-    /(?:stipend|salary|ctc|package|compensation|pay|payout):?\s*(?:INR|Rs\.?|₹|\$|EUR|£)?\s*[\d,]+(?:\s*(?:k|lakh|lpa|per month|\/month|\/hr|per day|\/week|pm))?/i,
-    /(?:INR|Rs\.?|₹|\$)\s*[\d,]+(?:\s*(?:per month|\/month|monthly|\/day|per day|per week|\/week|pm|lpa))?/i,
-    /(\d{1,3}(?:,\d{3})*(?:\s*(?:INR|USD|Rs|₹|\$))?\s*(?:per month|\/month|\/day|stipend))/i
+    /(?:stipend|salary|ctc|package|compensation|pay|payout):?\s*(?:INR|Rs\.?|₹|\$|EUR|€|£|GBP)?\s*[\d,]+(?:\s*(?:k|lakh|lpa|per month|\/month|\/hr|per day|\/week|pm|USD|EUR|GBP))?/i,
+    /(?:monthly\s*stipend|monthly\s*salary|hourly\s*rate):?\s*(?:INR|Rs\.?|₹|\$|EUR|€|£|GBP)?\s*[\d,]+/i,
+    /(?:INR|Rs\.?|₹|\$|EUR|€|£|GBP)\s*[\d,]+(?:\s*(?:per month|\/month|monthly|\/day|per day|per week|\/week|pm|lpa|USD|EUR|GBP))/i
   ];
   for (const reg of salaryRegexes) {
     const m = text.match(reg);
@@ -134,30 +135,40 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
     }
   }
 
-  // 10. Detect Payment Demand / Fee Amount & Purpose
+  // 10. Detect Payment Demand / Fee Amount & Purpose (Demanded FROM candidate)
   let paymentAmount = 'Not detected';
   let paymentPurpose = 'Not detected';
-  const paymentRegexes = [
-    /(?:fee|charge|deposit|amount|pay|transfer|send|registration|kit|cost|price|security)\s*(?:of|is|:)?\s*(?:INR|Rs\.?|₹|\$)\s*([\d,]+)/i,
-    /(?:INR|Rs\.?|₹|\$)\s*([\d,]+)\s*(?:as|for|towards)?\s*(?:registration|security deposit|refundable deposit|training fee|processing fee|onboarding fee|kit fee|background check)/i,
-    /(?:pay|deposit|transfer)\s*(?:INR|Rs\.?|₹|\$)?\s*([\d,]+)/i
+  let paymentRequested = false;
+
+  // Explicit check: Ignore payment if text says "never requests fees" or "zero cost"
+  const isAntiFeeDisclaimer = /never\s*requests?\s*(?:application\s*)?fees|zero\s*(?:cost|recruitment\s*fee)|100%\s*free/i.test(text);
+
+  const feeRegexes = [
+    /(?:deposit|registration\s*fee|processing\s*fee|security\s*deposit|refundable\s*deposit|training\s*fee|onboarding\s*fee|kit\s*fee|clearance\s*fee|application\s*fee|courier\s*fee|equipment\s*deposit)\s*(?:of|is|:)?\s*(?:INR|Rs\.?|₹|\$|USD|EUR|€|£|GBP|USDT)?\s*([\d,]+(?:\s*(?:USD|EUR|GBP|USDT|INR|Rs|₹|\$))?)/i,
+    /(?:pay|deposit|transfer|send|require|requires)\s+(?:an?\s+)?(?:upfront\s+)?(?:INR|Rs\.?|₹|\$|USD|EUR|€|£|GBP|USDT)?\s*([\d,]+(?:\s*(?:USD|EUR|GBP|USDT))?)/i,
+    /(?:INR|Rs\.?|₹|\$|USD|EUR|€|£|GBP|USDT)\s*([\d,]+(?:\s*(?:USD|EUR|GBP|USDT))?)\s*(?:as|for|towards|in)?\s*(?:registration|security|deposit|training|kit|laptop|clearance|processing|fee|foreign\s*currency)/i
   ];
-  for (const reg of paymentRegexes) {
+
+  const isFeeContext = /(?:fee|charge|deposit|pay|transfer|send|registration|kit|clearance|require|requires|cost|refundable)/i.test(text);
+
+  for (const reg of feeRegexes) {
     const m = text.match(reg);
-    if (m) {
+    if (m && !isAntiFeeDisclaimer && isFeeContext) {
       paymentAmount = m[0].trim();
+      paymentRequested = true;
       break;
     }
   }
 
   const purposeRegexes = [
-    /(?:for|towards|as a|for the)\s+([A-Za-z\s]{3,35}(?:registration|deposit|training|kit|laptop|background check|verification|slot reservation|certificate|seat))/i,
-    /(registration fee|refundable security deposit|training charge|onboarding kit fee|processing charge|exam fee|platform charge)/i
+    /(?:for|towards|as a|for the)\s+([A-Za-z\s]{3,45}(?:registration|deposit|training|kit|laptop|background check|verification|slot reservation|certificate|seat|clearance|fee))/i,
+    /(registration fee|refundable security deposit|training charge|onboarding kit fee|processing charge|exam fee|platform charge|disbursement clearance fee|clearance fee)/i
   ];
   for (const reg of purposeRegexes) {
     const m = text.match(reg);
-    if (m && m[1]) {
+    if (m && m[1] && !isAntiFeeDisclaimer) {
       paymentPurpose = m[1].trim();
+      paymentRequested = true;
       break;
     }
   }
@@ -167,7 +178,7 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
   const deadlineRegexes = [
     /(?:within|in|before|by|deadline:?|valid for|expires in)\s+([0-9]+\s*(?:hours|hrs|days|mins|minutes|pm|am|tonight|today|tomorrow))/i,
     /(last date(?:\s+is)?:?\s*[A-Za-z0-9, -]{3,25})/i,
-    /(immediate joining|urgent joining|confirm within 24 hours|slots valid for today only)/i
+    /(immediate joining|urgent joining|confirm within 24 hours|confirm within 48 hours|slots valid for today only)/i
   ];
   for (const reg of deadlineRegexes) {
     const m = text.match(reg);
@@ -198,9 +209,9 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
   const requestedCredentials: string[] = [];
   const credKeywords = [
     { label: 'One-Time Password (OTP)', regex: /otp|one[\s-]time\s*password|verification code/i },
-    { label: 'Account Password', regex: /password|account login credentials|pin/i },
+    { label: 'Account Password / Login Credentials', regex: /password|account login credentials|pin|netbanking login/i },
     { label: 'UPI PIN / MPIN', regex: /upi pin|mpin|gpay pin/i },
-    { label: 'Remote Access Tool (AnyDesk/TeamViewer)', regex: /anydesk|teamviewer|ultraviewer|rustdesk/i }
+    { label: 'Remote Desktop Tool Access', regex: /anydesk|teamviewer|ultraviewer|rustdesk/i }
   ];
   for (const item of credKeywords) {
     if (item.regex.test(text)) {
@@ -236,7 +247,7 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
   }
 
   // 16. Detect Application & Selection Method
-  let applicationMethod = 'Direct Inquiry';
+  let applicationMethod = 'Standard Direct Inquiry';
   if (/selected without interview|direct selection|no interview required|profile shortlisted directly|congratulations you have been selected/i.test(text)) {
     applicationMethod = 'Direct Selection Without Interview (Unverified)';
   } else if (/google form|forms\.gle/i.test(text)) {
@@ -266,21 +277,30 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
   }
 
   return {
+    title: jobTitle,
+    jobTitle,
     organization,
     recruiter,
+    email: recruiterEmail,
     recruiterEmail,
+    phone: phoneNumber,
     phoneNumber,
     website,
+    url: opportunityUrl,
     opportunityUrl,
+    type: opportunityType,
     opportunityType,
-    jobTitle,
+    location,
+    compensation: salaryStipend,
     salaryStipend,
+    paymentRequested,
     paymentAmount,
+    paymentReason: paymentPurpose,
     paymentPurpose,
+    deadline: deadlines,
     deadlines,
     requestedDocuments,
     requestedCredentials,
-    location,
     communicationPlatform,
     applicationMethod,
     claims
