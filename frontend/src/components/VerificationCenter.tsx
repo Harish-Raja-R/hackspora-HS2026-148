@@ -88,40 +88,65 @@ export const VerificationCenter: React.FC<VerificationCenterProps> = ({ data }) 
           </div>
         </div>
 
-        {/* Evidence Verification Meter */}
-        <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center space-x-4 min-w-[200px]">
-          <div className="text-right flex-1">
-            <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-              Evidence Checked
+        {/* Metrics Grid */}
+        <div className="flex space-x-3 overflow-x-auto pb-2 sm:pb-0">
+          {/* Trust Score */}
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center space-x-4 min-w-[160px]">
+            <div className="text-right flex-1">
+              <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+                Trust Score
+              </div>
+              <div className="text-lg font-bold font-mono text-emerald-400">
+                {data.trustScore || 0}/100
+              </div>
             </div>
-            <div className="text-lg font-bold font-mono text-cyan-300">
-              {data.evidenceVerificationPercent}%
+            <div className="w-10 h-10 flex-shrink-0 relative flex items-center justify-center">
+              <ShieldCheck className={`w-6 h-6 ${(data.trustScore || 0) >= 50 ? 'text-emerald-400' : 'text-amber-400'}`} />
             </div>
           </div>
-          <div className="w-12 h-12 flex-shrink-0 relative flex items-center justify-center">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-              <path
-                className="text-slate-800"
-                strokeWidth="3.5"
-                stroke="currentColor"
-                fill="none"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-              <path
-                className="text-cyan-400"
-                strokeDasharray={`${data.evidenceVerificationPercent}, 100`}
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                stroke="currentColor"
-                fill="none"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-            </svg>
-            <span className="absolute text-[10px] font-mono font-bold text-white">
-              {data.evidenceVerificationPercent}%
-            </span>
+          
+          {/* Evidence Verification Meter */}
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center space-x-4 min-w-[180px]">
+            <div className="text-right flex-1">
+              <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+                Evidence Checked
+              </div>
+              <div className="text-lg font-bold font-mono text-cyan-300">
+                {data.evidenceVerificationPercent}%
+              </div>
+            </div>
+            <div className="w-10 h-10 flex-shrink-0 relative flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                <path className="text-slate-800" strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path className="text-cyan-400" strokeDasharray={`${data.evidenceVerificationPercent}, 100`} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+            </div>
+          </div>
+          
+          {/* Verification Confidence */}
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center space-x-4 min-w-[160px]">
+            <div className="text-right flex-1">
+              <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+                Verif. Confidence
+              </div>
+              <div className="text-lg font-bold font-mono text-blue-400">
+                {data.verificationConfidence || '0'}%
+              </div>
+            </div>
+            <div className="w-10 h-10 flex-shrink-0 relative flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                <path className="text-slate-800" strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path className="text-blue-400" strokeDasharray={`${data.verificationConfidence || '0'}, 100`} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+            </div>
           </div>
         </div>
+      </div>
+      
+      {/* Trust Rationale Notice */}
+      <div className="px-4 py-3 rounded-2xl bg-emerald-950/20 border border-emerald-900/40 text-xs text-emerald-400 font-mono flex items-start space-x-3">
+        <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
+        <span>{data.trustRationale || 'Verification process completed successfully.'}</span>
       </div>
 
       {/* Responsible AI Tooltip Notice */}

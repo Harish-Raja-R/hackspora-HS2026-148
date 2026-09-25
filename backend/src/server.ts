@@ -1,21 +1,31 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import apiRoutes from './routes/api.js';
+import authRoutes from './routes/authRoutes.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// CORS configuration to allow local Vite frontend development
+// Security Headers
+app.use(helmet());
+
+// Secure CORS configuration
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 app.use(
   cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    origin: frontendUrl,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
+
+app.use(cookieParser());
 
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
@@ -28,6 +38,7 @@ const frontendDist = fs.existsSync(path.resolve(process.cwd(), 'frontend/dist'))
   : path.resolve(process.cwd(), '../frontend/dist');
 
 // Mount API routes
+app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
 // Static frontend serving in production

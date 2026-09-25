@@ -1,3 +1,5 @@
+import { safeNetworkFetch } from '../engine/network/safeNetworkClient.js';
+
 export interface UrlAnalysisResult {
   text: string;
   domain: string;
@@ -49,22 +51,16 @@ export async function analyzeUrlTarget(targetUrl: string): Promise<UrlAnalysisRe
       }
     }
 
-    // Safe Page Fetching (5-second timeout, 500KB cap)
+    // Safe Page Fetching using Phase 6 safeNetworkClient
     let pageContent = '';
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-      const response = await fetch(targetUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ScamCheck-Security-Analyzer/1.0'
-        },
-        signal: controller.signal
+      const response = await safeNetworkFetch(targetUrl, {
+        timeoutMs: 5000,
+        maxResponseBytes: 500 * 1024,
       });
-      clearTimeout(timeoutId);
 
-      if (response.ok) {
-        const html = await response.text();
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        const html = response.data;
         pageContent = html
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
           .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')

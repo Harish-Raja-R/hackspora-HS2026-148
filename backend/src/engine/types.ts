@@ -251,6 +251,35 @@ export interface ExternalEvidenceItem {
   badge: 'EXTERNAL_SOURCE' | 'USER_SUBMITTED';
 }
 
+export interface ExternalVerificationContext {
+  dns?: {
+    status: 'VERIFIED' | 'UNVERIFIED' | 'UNAVAILABLE';
+    hasA: boolean;
+    hasMx: boolean;
+    notes: string[];
+  };
+  tls?: {
+    status: 'VERIFIED' | 'UNVERIFIED' | 'UNAVAILABLE';
+    issuer: string | null;
+    validFrom: string | null;
+    validTo: string | null;
+    notes: string[];
+  };
+  emailAuth?: {
+    hasMx: boolean;
+    spfStatus: 'SPF_PRESENT' | 'SPF_ABSENT' | 'UNAVAILABLE';
+    dmarcStatus: 'DMARC_PRESENT' | 'DMARC_ABSENT' | 'UNAVAILABLE';
+    notes: string[];
+  };
+  rdap?: {
+    status: 'AVAILABLE' | 'UNAVAILABLE';
+    registrationDate: string | null;
+    expirationDate: string | null;
+    registrar: string | null;
+    notes: string[];
+  };
+}
+
 export interface VerificationCenterData {
   claims: VerificationClaim[];
   evidenceVerificationPercent: number; // % of claims that could be independently checked
@@ -261,6 +290,51 @@ export interface VerificationCenterData {
   opportunityExistence: 'FOUND_ON_OFFICIAL_SOURCE' | 'NOT_FOUND' | 'SEARCH_UNAVAILABLE' | 'NOT_CHECKED';
   diyVerificationSteps: string[];
   externalEvidenceItems: ExternalEvidenceItem[];
+  trustScore: number;
+  trustRationale: string;
+  verificationConfidence: number;
+  externalContext?: ExternalVerificationContext;
+}
+
+export interface MachineLearningAnalysis {
+  available: boolean;
+  model?: string;
+  version?: string;
+  score?: number;      // e.g., 0-100 ML probability
+  confidence?: number; // e.g., 0-100 ML confidence (calibrated)
+  reason?: string;
+}
+
+// ----------------------------------------------------
+// PROMPT 7 MULTIMODAL INTERFACES (Phase 5)
+// ----------------------------------------------------
+export interface ExtractedEntity {
+  type: 'URL' | 'EMAIL' | 'PHONE' | 'DOMAIN' | 'ORGANIZATION' | 'PERSON' | 'CURRENCY' | 'PAYMENT_REQUEST' | 'ACCOUNT_NUMBER' | 'UPI' | 'UPI_URL' | 'QR_PAYLOAD' | 'SOCIAL_MEDIA' | 'OTHER';
+  value: string;
+  normalizedValue?: string;
+  source: 'TEXT' | 'OCR' | 'PDF' | 'DOCX' | 'URL' | 'QR' | 'QR_DECODER' | 'QR_PAYLOAD' | 'UNKNOWN';
+  confidence: number;
+  metadata?: any;
+}
+
+export interface NormalizedInput {
+  type: 'TEXT' | 'IMAGE' | 'PDF' | 'DOCX' | 'URL' | 'MIXED';
+  sourceId?: string;
+  originalName?: string;
+}
+
+export interface MultimodalContent {
+  inputs: NormalizedInput[];
+  content: {
+    text: string;
+    entities: ExtractedEntity[];
+  };
+  metadata: {
+    ocrUsed: boolean;
+    pageCount?: number;
+    fileHashes?: string[];
+    [key: string]: any;
+  };
 }
 
 export interface InvestigationReport {
@@ -301,6 +375,12 @@ export interface InvestigationReport {
 
   // External Verification Center (Prompt 6)
   verificationCenter?: VerificationCenterData;
+
+  // ML Analysis (Phase 4)
+  machineLearning?: MachineLearningAnalysis;
+
+  // Multimodal Context (Phase 5)
+  multimodal?: MultimodalContent;
 }
 
 export interface ComparisonReport {

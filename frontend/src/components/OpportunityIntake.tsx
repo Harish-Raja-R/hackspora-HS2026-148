@@ -14,7 +14,7 @@ import {
 import { DemoCase } from '../types/investigation';
 
 interface OpportunityIntakeProps {
-  onInvestigate: (payload: { text?: string; file?: File; url?: string }) => void;
+  onInvestigate: (payload: { text?: string; file?: File; files?: File[]; url?: string }) => void;
   isLoading: boolean;
   demos: DemoCase[];
 }
@@ -27,23 +27,24 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
   const [activeMode, setActiveMode] = useState<'text' | 'file' | 'url'>('text');
   const [textInput, setTextInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviewUrls, setFilePreviewUrls] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Generate image preview URL when image file is selected
+  // Generate image preview URLs when image files are selected
   useEffect(() => {
-    if (selectedFile && selectedFile.type.startsWith('image/')) {
-      const url = URL.createObjectURL(selectedFile);
-      setFilePreviewUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setFilePreviewUrl(null);
-    }
-  }, [selectedFile]);
+    const urls = selectedFiles.map(file => {
+      if (file.type.startsWith('image/')) {
+        return URL.createObjectURL(file);
+      }
+      return '';
+    });
+    setFilePreviewUrls(urls);
+    return () => urls.forEach(url => { if (url) URL.revokeObjectURL(url); });
+  }, [selectedFiles]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -59,41 +60,51 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      validateAndSetFile(file);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      validateAndSetFiles(Array.from(e.dataTransfer.files));
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      validateAndSetFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      validateAndSetFiles(Array.from(e.target.files));
     }
   };
 
-  const validateAndSetFile = (file: File) => {
+  const validateAndSetFiles = (files: File[]) => {
     setInputError(null);
     const maxSize = 20 * 1024 * 1024; // 20 MB
-    if (file.size > maxSize) {
-      setInputError('File is too large. Maximum supported file size is 20MB.');
-      return;
+
+    if (selectedFiles.length + files.length > 5) {
+       setInputError('Maximum 5 files allowed.');
+       return;
     }
+
     const acceptedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    const ext = file.name.split('.').pop()?.toLowerCase();
     const validExts = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'txt', 'docx'];
 
-    if (!acceptedTypes.includes(file.type) && !validExts.includes(ext || '')) {
-      setInputError('Unsupported file format. Please upload a PDF document or an image (PNG, JPG, WEBP).');
-      return;
+    const validFiles: File[] = [];
+
+    for (const file of files) {
+      if (file.size > maxSize) {
+        setInputError(`File ${file.name} is too large. Maximum supported file size is 20MB.`);
+        return;
+      }
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (!acceptedTypes.includes(file.type) && !validExts.includes(ext || '')) {
+        setInputError(`Unsupported file format for ${file.name}. Please upload a PDF, Image, DOCX, or TXT.`);
+        return;
+      }
+      validFiles.push(file);
     }
 
-    setSelectedFile(file);
+    setSelectedFiles((prev) => [...prev, ...validFiles]);
   };
 
   const handleLoadDemo = (demo: DemoCase) => {
     setActiveMode('text');
     setTextInput(demo.content);
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setUrlInput('');
     setInputError(null);
   };
@@ -109,7 +120,7 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
       `Pay ₹2,999 registration and laptop kit fee within 24 hours to secure your slot.\n` +
       `Send payment screenshot to hr.googleinternships@gmail.com along with your Aadhaar copy."`
     );
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setUrlInput('');
     setInputError(null);
   };
@@ -129,11 +140,11 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
       }
       onInvestigate({ text: textInput.trim() });
     } else if (activeMode === 'file') {
-      if (!selectedFile) {
+      if (selectedFiles.length === 0) {
         setInputError('Please select or drop an opportunity screenshot or PDF document.');
         return;
       }
-      onInvestigate({ file: selectedFile });
+      onInvestigate({ files: selectedFiles });
     } else if (activeMode === 'url') {
       if (!urlInput.trim()) {
         setInputError('Please provide an opportunity URL.');
@@ -310,7 +321,7 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
                 className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
                   dragActive
                     ? 'border-cyan-400 bg-cyan-950/30 shadow-[0_0_20px_rgba(6,182,212,0.2)]'
-                    : selectedFile
+                    : selectedFiles.length > 0
                     ? 'border-emerald-500/50 bg-emerald-950/20'
                     : 'border-slate-800 hover:border-slate-700 bg-slate-950/60'
                 }`}
@@ -318,50 +329,85 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
                 <input
                   ref={fileInputRef}
                   type="file"
+                  multiple
                   accept=".pdf,.png,.jpg,.jpeg,.webp,.docx,.txt"
                   onChange={handleFileChange}
                   className="hidden"
                 />
 
-                {selectedFile ? (
-                  <div className="flex flex-col items-center space-y-3">
-                    {/* Thumbnail Preview for Images */}
-                    {filePreviewUrl ? (
-                      <div className="w-24 h-24 rounded-2xl border border-emerald-500/40 overflow-hidden bg-slate-950 shadow-md">
-                        <img
-                          src={filePreviewUrl}
-                          alt="Screenshot preview"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                        {selectedFile.type === 'application/pdf' ? (
-                          <FileText className="w-7 h-7" />
-                        ) : (
-                          <FileSpreadsheet className="w-7 h-7" />
-                        )}
-                      </div>
-                    )}
-
-                    <div className="text-center space-y-0.5">
-                      <div className="font-bold text-sm text-slate-100">{selectedFile.name}</div>
-                      <div className="text-xs text-slate-400 font-mono">
-                        {selectedFile.type.startsWith('image/') ? 'Image Screenshot (OCR)' : 'Document (PDF/DOCX)'} • {(selectedFile.size / 1024).toFixed(1)} KB
-                      </div>
+                {selectedFiles.length > 0 ? (
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="flex flex-wrap gap-4 justify-center">
+                      {selectedFiles.map((file, idx) => (
+                        <div key={idx} className="flex flex-col items-center space-y-2">
+                          {filePreviewUrls[idx] ? (
+                            <div className="w-16 h-16 rounded-xl border border-emerald-500/40 overflow-hidden bg-slate-950 shadow-md relative group">
+                              <img
+                                src={filePreviewUrls[idx]}
+                                alt="Screenshot preview"
+                                className="w-full h-full object-cover group-hover:opacity-50 transition-opacity"
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
+                                }}
+                                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="w-6 h-6 text-rose-400" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="relative w-16 h-16 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 group">
+                              {file.type === 'application/pdf' ? (
+                                <FileText className="w-6 h-6 group-hover:opacity-20 transition-opacity" />
+                              ) : (
+                                <FileSpreadsheet className="w-6 h-6 group-hover:opacity-20 transition-opacity" />
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
+                                }}
+                                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="w-6 h-6 text-rose-400" />
+                              </button>
+                            </div>
+                          )}
+                          <div className="text-center w-24">
+                            <div className="font-bold text-[10px] text-slate-100 truncate" title={file.name}>{file.name}</div>
+                            <div className="text-[9px] text-slate-400 font-mono truncate">
+                              {(file.size / 1024).toFixed(1)} KB
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-
+                    {selectedFiles.length < 5 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                        className="text-xs text-cyan-400 hover:underline flex items-center space-x-1 mt-2"
+                      >
+                        <span>+ Add another file (Max 5)</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedFile(null);
-                        setFilePreviewUrl(null);
+                        setSelectedFiles([]);
                       }}
                       className="text-xs text-rose-400 hover:underline flex items-center space-x-1"
                     >
                       <X className="w-3.5 h-3.5" />
-                      <span>Remove File</span>
+                      <span>Remove All Files</span>
                     </button>
                   </div>
                 ) : (
@@ -373,7 +419,7 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
                       Drop an opportunity screenshot or document here
                     </span>
                     <span className="text-xs text-slate-500 font-mono">
-                      Accepts PDF, PNG, JPG, JPEG, WEBP, DOCX (Max 20MB)
+                      Accepts PDF, PNG, JPG, JPEG, WEBP, DOCX (Max 5 files, 20MB ea)
                     </span>
                     <span className="text-xs text-cyan-400 font-mono underline pt-1">
                       Browse files on your device

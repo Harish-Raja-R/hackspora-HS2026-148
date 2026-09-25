@@ -5,22 +5,31 @@ const API_BASE = (import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL
 export async function investigateOpportunity(payload: {
   text?: string;
   file?: File;
+  files?: File[];
   url?: string;
 }): Promise<InvestigationReport> {
   const formData = new FormData();
 
-  if (payload.file) {
+  if (payload.files && payload.files.length > 0) {
+    payload.files.forEach(f => formData.append('files', f));
+  } else if (payload.file) {
     formData.append('file', payload.file);
-  } else if (payload.url) {
+  }
+  
+  if (payload.url) {
     formData.append('url', payload.url);
-  } else if (payload.text) {
+  } 
+  
+  if (payload.text) {
     formData.append('text', payload.text);
   }
 
+  const hasFiles = (payload.files && payload.files.length > 0) || !!payload.file;
+
   const response = await fetch(`${API_BASE}/investigate`, {
     method: 'POST',
-    body: payload.file ? formData : JSON.stringify({ text: payload.text, url: payload.url }),
-    headers: payload.file ? undefined : { 'Content-Type': 'application/json' }
+    body: hasFiles ? formData : JSON.stringify({ text: payload.text, url: payload.url }),
+    headers: hasFiles ? undefined : { 'Content-Type': 'application/json' }
   });
 
   if (!response.ok) {

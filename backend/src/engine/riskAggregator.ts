@@ -18,11 +18,12 @@ import {
   ManipulationSignal,
   FalsePositiveContext,
   ScoreWaterfallDriver,
-  VerificationCenterData
+  VerificationCenterData,
+  MachineLearningAnalysis
 } from './types.js';
 import { verifyOpportunityClaims } from './externalVerifier.js';
 
-export function aggregateInvestigation(
+export async function aggregateInvestigation(
   inputSnippet: string,
   inputMode: 'text' | 'document' | 'image' | 'url',
   entities: ExtractedOpportunity,
@@ -31,9 +32,10 @@ export function aggregateInvestigation(
   potentialExposure: PotentialExposure,
   confidenceScore: number,
   confidenceRationale: string,
-  uncertainty: UncertaintyHandling
-): InvestigationReport {
-  // 1. Calculate Clustered Risk Score with Anti-Double-Counting Dampener
+  uncertainty: UncertaintyHandling,
+  mlAnalysis?: MachineLearningAnalysis
+): Promise<InvestigationReport> {
+  // 1. Calculate Clustered Deterministic Risk Score with Anti-Double-Counting Dampener
   let rawScore = 5; // ambient baseline
 
   const clusters: { [cat: string]: number[] } = {};
@@ -73,7 +75,45 @@ export function aggregateInvestigation(
     rawScore = Math.max(rawScore, 35);
   }
 
-  const riskScore = Math.max(0, Math.min(100, Math.round(rawScore)));
+  const deterministicRiskScore = Math.max(0, Math.min(100, Math.round(rawScore)));
+  
+  // 1.5 EVIDENCE FUSION LAYER (Deterministic + ML)
+  let finalRiskScore = deterministicRiskScore;
+  let finalConfidenceScore = confidenceScore;
+  
+  if (mlAnalysis && mlAnalysis.available && mlAnalysis.score !== undefined && mlAnalysis.confidence !== undefined) {
+    // Determine the ML risk contribution
+    // Weight ML vs Deterministic based on confidence.
+    // If ML is highly confident (e.g. > 80) and Deterministic is ambiguous, ML can bump it.
+    // However, if Deterministic has CRITICAL threats, do not lower risk even if ML says it's safe.
+    
+    // Fusion formula: 70% Deterministic + 30% ML
+    let fusedRisk = (deterministicRiskScore * 0.7) + (mlAnalysis.score * 0.3);
+    
+    // Ensure deterministic CRITICAL threats are never hidden by ML
+    if (hasCriticalScam) {
+      fusedRisk = Math.max(fusedRisk, 65);
+    }
+    
+    finalRiskScore = Math.max(0, Math.min(100, Math.round(fusedRisk)));
+    
+    // Confidence fusion
+    // System confidence increases if Deterministic and ML agree. 
+    // It decreases if they strongly disagree.
+    const riskDiff = Math.abs(deterministicRiskScore - mlAnalysis.score);
+    if (riskDiff > 40) {
+      // Strong disagreement: Reduce system confidence
+      finalConfidenceScore = Math.max(10, finalConfidenceScore - 20);
+      confidenceRationale += " The AI and deterministic security rules strongly disagreed on this analysis, lowering overall system confidence.";
+    } else if (riskDiff < 20) {
+      // Agreement: Boost system confidence
+      finalConfidenceScore = Math.min(100, finalConfidenceScore + 10);
+      confidenceRationale += " The AI model strongly agreed with the deterministic security rules, reinforcing system confidence.";
+    }
+  }
+
+  const riskScore = finalRiskScore;
+  const confidenceScoreOutput = finalConfidenceScore;
 
   // 2. Classify Risk Tier & Risk Level
   let riskTier: RiskTier = 'LOW RISK';
@@ -221,11 +261,11 @@ export function aggregateInvestigation(
   let executiveAssessment = '';
   if (riskTier === 'HIGH RISK') {
     const criticalCount = signals.filter((s) => s.severity === 'CRITICAL').length;
-    executiveAssessment = `Investigation classified this opportunity as HIGH RISK (${riskScore}/100) with ${confidenceScore}% assessment confidence. Detected ${signals.length} threat indicators, including ${criticalCount} critical fraud vectors (${signals.slice(0, 2).map((s) => s.name).join(', ')}). The hiring pattern exhibits classic deception mechanics. Immediate disengagement is advised.`;
+    executiveAssessment = `Investigation classified this opportunity as HIGH RISK (${riskScore}/100) with ${confidenceScoreOutput}% assessment confidence. Detected ${signals.length} threat indicators, including ${criticalCount} critical fraud vectors (${signals.slice(0, 2).map((s) => s.name).join(', ')}). The hiring pattern exhibits classic deception mechanics. Immediate disengagement is advised.`;
   } else if (riskTier === 'NEEDS VERIFICATION') {
-    executiveAssessment = `Investigation classified this opportunity as NEEDS VERIFICATION (${riskScore}/100) with ${confidenceScore}% confidence. While no direct financial extortion was triggered, the submission exhibits inconsistencies or lacks cryptographic proof of corporate authorization. Independent cross-verification through official corporate channels is strongly recommended before sharing personal data.`;
+    executiveAssessment = `Investigation classified this opportunity as NEEDS VERIFICATION (${riskScore}/100) with ${confidenceScoreOutput}% confidence. While no direct financial extortion was triggered, the submission exhibits inconsistencies or lacks cryptographic proof of corporate authorization. Independent cross-verification through official corporate channels is strongly recommended before sharing personal data.`;
   } else {
-    executiveAssessment = `Investigation classified this opportunity as LOW RISK (${riskScore}/100) with ${confidenceScore}% confidence. Opportunity attributes align with legitimate enterprise talent acquisition standards, verified domain infrastructure, and conventional screening protocols with zero candidate financial liability.`;
+    executiveAssessment = `Investigation classified this opportunity as LOW RISK (${riskScore}/100) with ${confidenceScoreOutput}% confidence. Opportunity attributes align with legitimate enterprise talent acquisition standards, verified domain infrastructure, and conventional screening protocols with zero candidate financial liability.`;
   }
 
   // ----------------------------------------------------
@@ -267,7 +307,7 @@ export function aggregateInvestigation(
     contactConsistency: Math.max(0, 100 - categoryRisks.communication),
     processConsistency: Math.max(0, 100 - Math.round(categoryRisks.urgency * 0.7)),
     financialSafety: Math.max(0, 100 - categoryRisks.financial),
-    evidenceStrength: confidenceScore
+    evidenceStrength: confidenceScoreOutput
   };
 
   // 8.3 Contradiction Engine
@@ -455,7 +495,7 @@ export function aggregateInvestigation(
       step: 5,
       name: 'Hybrid Risk & Confidence Synthesis',
       status: 'COMPLETED',
-      detail: `Calibrated Risk=${riskScore}/100 (${riskTier}), Confidence=${confidenceScore}%.`,
+      detail: `Calibrated Risk=${riskScore}/100 (${riskTier}), Confidence=${confidenceScoreOutput}%. ${mlAnalysis?.available ? 'ML Engine fused.' : 'ML Engine unavailable.'}`,
       timestamp: now
     },
     {
@@ -479,7 +519,7 @@ export function aggregateInvestigation(
     inputSnippet: inputSnippet.length > 300 ? inputSnippet.substring(0, 297) + '...' : inputSnippet,
     inputMode,
     riskScore,
-    confidenceScore,
+    confidenceScore: confidenceScoreOutput,
     riskLevel,
     riskTier,
     confidenceRationale,
@@ -510,7 +550,10 @@ export function aggregateInvestigation(
     falsePositiveContext,
     scoreDrivers,
 
-    // Prompt 6 External Verification Center
-    verificationCenter: verifyOpportunityClaims(entities, orgConsistency, inputSnippet)
+    // External Verification Center (Prompt 6)
+    verificationCenter: await verifyOpportunityClaims(entities, orgConsistency, inputSnippet),
+
+    // ML Analysis (Phase 4)
+    machineLearning: mlAnalysis
   };
 }

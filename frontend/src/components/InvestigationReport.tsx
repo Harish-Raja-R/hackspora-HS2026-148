@@ -21,7 +21,9 @@ import {
   Shield,
   ShieldAlert,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  BrainCircuit,
+  Activity
 } from 'lucide-react';
 import { InvestigationReport } from '../types/investigation';
 import { EvidenceChain } from './EvidenceChain';
@@ -38,6 +40,8 @@ import { ContradictionsCard } from './ContradictionsCard';
 import { WhatIfSimulator } from './WhatIfSimulator';
 import { LegitimacyCheckView } from './LegitimacyCheckView';
 import { ScoreWaterfallView } from './ScoreWaterfallView';
+import { MultimodalEvidenceView } from './MultimodalEvidenceView';
+import { PaymentSecurityPanel } from './PaymentSecurityPanel';
 
 // Prompt 6 External Threat Intelligence & Verification Center
 import { VerificationCenter } from './VerificationCenter';
@@ -321,6 +325,88 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
           </p>
         </div>
       </div>
+
+      {/* PHASE 4: MACHINE LEARNING ENGINE FUSION */}
+      {report.machineLearning && report.machineLearning.available && (
+        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-cyan-800/40 space-y-6 relative overflow-hidden bg-slate-900/40">
+          <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-cyan-900/20 blur-3xl pointer-events-none" />
+          
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-cyan-950/50 rounded-xl border border-cyan-800/50">
+                <BrainCircuit className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-100 font-['Outfit']">
+                  Machine Learning Engine
+                </h3>
+                <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest">
+                  {report.machineLearning.model} v{report.machineLearning.version}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 px-3 py-1 bg-emerald-950/30 border border-emerald-800/30 rounded-full">
+              <Activity className="w-3 h-3 text-emerald-400" />
+              <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">Engine Active</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800">
+              <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-3">
+                Scam Probability Score
+              </div>
+              <div className="flex items-end space-x-3">
+                <span className={`text-4xl font-extrabold font-mono ${
+                  (report.machineLearning.score || 0) >= 60 ? 'text-rose-400' : (report.machineLearning.score || 0) >= 30 ? 'text-amber-400' : 'text-emerald-400'
+                }`}>
+                  {report.machineLearning.score}%
+                </span>
+                <span className="text-xs font-mono text-slate-500 pb-1">likelihood</span>
+              </div>
+              <div className="mt-4 w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-1000 ${
+                    (report.machineLearning.score || 0) >= 60 ? 'bg-rose-500' : (report.machineLearning.score || 0) >= 30 ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`} 
+                  style={{ width: `${report.machineLearning.score}%` }} 
+                />
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800">
+              <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-3">
+                Model Confidence Calibration
+              </div>
+              <div className="flex items-end space-x-3">
+                <span className="text-4xl font-extrabold font-mono text-cyan-300">
+                  {report.machineLearning.confidence}%
+                </span>
+                <span className="text-xs font-mono text-slate-500 pb-1">calibrated</span>
+              </div>
+              <div className="mt-4 w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-cyan-500 transition-all duration-1000" 
+                  style={{ width: `${report.machineLearning.confidence}%` }} 
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 text-xs text-slate-300 leading-relaxed">
+            <span className="text-cyan-400 font-bold mr-2">FUSION NOTE:</span>
+            This AI prediction is one evidence source. The final system assessment ({report.riskScore}/100) merges this ML signal with {report.signals.length} deterministic security rules to prevent false positives and maintain explainability.
+          </div>
+        </div>
+      )}
+
+      {/* PHASE 5: MULTIMODAL INTELLIGENCE PIPELINE */}
+      {report.multimodal && (
+        <MultimodalEvidenceView multimodal={report.multimodal} />
+      )}
+
+      {/* PHASE 9: PAYMENT SECURITY INTELLIGENCE */}
+      <PaymentSecurityPanel multimodalContext={report.multimodal} />
 
       {/* PROMPT 5 FEATURE: OPPORTUNITY DNA & FINGERPRINT */}
       <OpportunityDnaCard dna={report.opportunityDna} />

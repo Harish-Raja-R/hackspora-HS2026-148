@@ -7,14 +7,14 @@ import { evaluateConfidence } from '../engine/confidenceEngine.js';
 import { aggregateInvestigation } from '../engine/riskAggregator.js';
 import { ComparisonReport, InvestigationReport } from '../engine/types.js';
 
-function processSingleText(text: string, label: string): InvestigationReport {
+async function processSingleText(text: string, label: string): Promise<InvestigationReport> {
   const entities = extractEntities(text);
   const signals = evaluateScamPatterns(text, entities);
   const orgConsistency = evaluateOrgConsistency(text, entities);
   const potentialExposure = calculatePotentialExposure(entities, signals);
   const confidence = evaluateConfidence(text, entities, signals, orgConsistency);
 
-  return aggregateInvestigation(
+  return await aggregateInvestigation(
     text,
     'text',
     entities,
@@ -27,7 +27,7 @@ function processSingleText(text: string, label: string): InvestigationReport {
   );
 }
 
-export function handleCompare(req: Request, res: Response): void {
+export async function handleCompare(req: Request, res: Response): Promise<void> {
   try {
     const { textA, textB } = req.body;
 
@@ -38,8 +38,8 @@ export function handleCompare(req: Request, res: Response): void {
       return;
     }
 
-    const reportA = processSingleText(textA, 'Opportunity A');
-    const reportB = processSingleText(textB, 'Opportunity B');
+    const reportA = await processSingleText(textA, 'Opportunity A');
+    const reportB = await processSingleText(textB, 'Opportunity B');
 
     const riskDelta = Math.abs(reportA.riskScore - reportB.riskScore);
     let saferOption: 'A' | 'B' | 'EQUAL' = 'EQUAL';

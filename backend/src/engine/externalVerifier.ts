@@ -3,8 +3,11 @@ import {
   OrgConsistencyVector,
   VerificationCenterData,
   VerificationClaim,
-  ExternalEvidenceItem
+  ExternalEvidenceItem,
+  ExternalVerificationContext
 } from './types.js';
+import { verifyDns, verifyTls, verifyEmailInfrastructure, verifyRdap } from './network/verificationProviders.js';
+import { safeNetworkFetch } from './network/safeNetworkClient.js';
 
 // Enterprise official domain mapping registry
 const OFFICIAL_ORG_REGISTRY: {
@@ -123,11 +126,11 @@ export function checkLookalikeDomain(
 /**
  * Generates structured Verification Center data and Cross-Source Matrix
  */
-export function verifyOpportunityClaims(
+export async function verifyOpportunityClaims(
   entities: ExtractedOpportunity,
   orgConsistency: OrgConsistencyVector,
   rawSnippet: string
-): VerificationCenterData {
+): Promise<VerificationCenterData> {
   const orgKey = entities.organization.toLowerCase().trim();
   const matchedOrg = OFFICIAL_ORG_REGISTRY[orgKey];
 
@@ -165,13 +168,29 @@ export function verifyOpportunityClaims(
     domainStatus = 'UNVERIFIED';
   }
 
-  // Website Availability (Safe simulation based on structure)
+  // Network Verification Phase
+  const externalContext: ExternalVerificationContext = {};
   let websiteAvailability: 'REACHABLE' | 'UNREACHABLE' | 'TIMEOUT' | 'UNAVAILABLE' = 'UNAVAILABLE';
-  if (submittedHost) {
-    if (submittedHost.includes('example.com') || submittedHost.includes('invalid')) {
-      websiteAvailability = 'UNREACHABLE';
+  
+  if (submittedHost && submittedHost !== 'Not provided' && submittedHost !== 'Not detected' && !submittedHost.includes(' ')) {
+    externalContext.dns = await verifyDns(submittedHost);
+    externalContext.tls = await verifyTls(submittedHost);
+    externalContext.emailAuth = await verifyEmailInfrastructure(submittedHost);
+    externalContext.rdap = await verifyRdap(submittedHost);
+
+    if (externalContext.dns.status === 'VERIFIED') {
+      try {
+        const fetchRes = await safeNetworkFetch(`https://${submittedHost}`, { timeoutMs: 3000 });
+        if (fetchRes.statusCode >= 200 && fetchRes.statusCode < 400) {
+          websiteAvailability = 'REACHABLE';
+        } else {
+          websiteAvailability = 'UNREACHABLE';
+        }
+      } catch (e) {
+        websiteAvailability = 'TIMEOUT';
+      }
     } else {
-      websiteAvailability = 'REACHABLE';
+      websiteAvailability = 'UNREACHABLE';
     }
   }
 
@@ -252,10 +271,22 @@ export function verifyOpportunityClaims(
       claim: 'Website Reachability & TLS Protocol',
       submitted: submittedDomain,
       external: `HTTPS check // ${submittedHost}`,
-      status: websiteAvailability === 'REACHABLE' ? 'CONSISTENT' : 'UNAVAILABLE',
+      status: websiteAvailability === 'REACHABLE' && externalContext.tls?.status === 'VERIFIED' ? 'CONSISTENT' : 'UNAVAILABLE',
       rationale: websiteAvailability === 'REACHABLE'
         ? `Website host (${submittedHost}) is reachable. Reachability does not imply legitimacy.`
         : 'Submitted website host was unreachable or timed out during inspection.'
+    });
+  }
+  
+  // Claim 6: Registration Trust
+  if (externalContext.rdap && externalContext.rdap.status === 'AVAILABLE') {
+    const isNew = externalContext.rdap.notes.some(n => /registered \d+ days ago/i.test(n));
+    claims.push({
+      claim: 'Domain Registration Age',
+      submitted: submittedDomain,
+      external: externalContext.rdap.registrationDate || 'Unknown',
+      status: isNew ? 'UNVERIFIED' : 'CONSISTENT',
+      rationale: isNew ? 'Domain was recently registered (common in disposable infrastructure).' : 'Domain has established registration history.'
     });
   }
 
@@ -263,6 +294,56 @@ export function verifyOpportunityClaims(
   const verifiableClaims = claims.filter((c) => c.status !== 'UNAVAILABLE' && c.status !== 'NOT_CHECKED');
   const checkedClaims = claims.filter((c) => c.status === 'VERIFIED' || c.status === 'CONSISTENT' || c.status === 'MISMATCH');
   const evidenceVerificationPercent = Math.round((checkedClaims.length / Math.max(1, verifiableClaims.length)) * 100);
+
+  // Trust Score Calculation (Based on positive evidence, NOT 100-Risk)
+  let trustScore = 10; // Base trust
+  const positiveTrustFactors: string[] = [];
+  
+  if (matchedOrg) {
+    trustScore += 20;
+    positiveTrustFactors.push('Recognized enterprise organization');
+  }
+  if (domainStatus === 'MATCH') {
+    trustScore += 30;
+    positiveTrustFactors.push('Authenticated official web domain');
+  }
+  if (isOfficialEmail) {
+    trustScore += 20;
+    positiveTrustFactors.push('Verified corporate email channel');
+  }
+  if (externalContext.tls?.status === 'VERIFIED') {
+    trustScore += 10;
+    positiveTrustFactors.push('Cryptographically secured connection (TLS)');
+  }
+  if (externalContext.emailAuth?.spfStatus === 'SPF_PRESENT') {
+    trustScore += 5;
+    positiveTrustFactors.push('Email spoofing protection enabled (SPF)');
+  }
+  if (externalContext.rdap?.status === 'AVAILABLE' && !externalContext.rdap.notes.some(n => /registered \d+ days ago/i.test(n))) {
+    trustScore += 5;
+    positiveTrustFactors.push('Established domain registration age');
+  }
+
+  trustScore = Math.min(100, trustScore);
+
+  let trustRationale = '';
+  if (positiveTrustFactors.length > 0) {
+    trustRationale = `Trust score is built from verifiable positive indicators: ${positiveTrustFactors.join(', ')}.`;
+  } else {
+    trustRationale = 'No positive verifiable trust indicators were detected. Proceed with extreme caution.';
+  }
+
+  // Verification Confidence Calculation
+  let verificationConfidence = 0;
+  if (submittedHost && submittedHost !== 'Not detected') {
+    verificationConfidence += 40; // We had a domain to verify
+    if (externalContext.dns?.status !== 'UNAVAILABLE') verificationConfidence += 20;
+    if (externalContext.tls?.status !== 'UNAVAILABLE') verificationConfidence += 20;
+    if (externalContext.emailAuth?.spfStatus !== 'UNAVAILABLE') verificationConfidence += 20;
+  } else {
+    verificationConfidence = 20; // Text-only baseline
+  }
+  verificationConfidence = Math.min(100, verificationConfidence);
 
   // DIY Step-by-Step Verification Guide (Section 22)
   const diyVerificationSteps: string[] = [
@@ -325,6 +406,10 @@ export function verifyOpportunityClaims(
     websiteAvailability,
     opportunityExistence,
     diyVerificationSteps,
-    externalEvidenceItems
+    externalEvidenceItems,
+    trustScore,
+    trustRationale,
+    verificationConfidence,
+    externalContext
   };
 }
