@@ -178,9 +178,30 @@ export async function handleInvestigate(req: AuthRequest, res: Response): Promis
     res.status(200).json(report);
   } catch (error: any) {
     console.error('Investigation error:', error);
+    
+    // Handle specific client-safe errors (e.g., from documentParser)
+    const clientSafeErrors = ['PDF could not be parsed', 'Unable to extract readable content', 'PDF contains no selectable text', 'DOCX document contains no readable text', 'Document file is empty'];
+    if (error.message && clientSafeErrors.some(msg => error.message.includes(msg))) {
+      res.status(400).json({
+        error: 'Invalid or unsupported file.',
+        details: error.message
+      });
+      return;
+    }
+
+    // Handle database connection failures safely without exposing secrets/stack traces
+    let safeDetails = 'An unexpected internal error occurred.';
+    if (error.message && error.message.includes('PrismaClientInitializationError')) {
+      safeDetails = 'Database connection could not be established. Please try again later.';
+    } else if (error.message && error.message.includes('Prisma')) {
+      safeDetails = 'A database operation failed.';
+    } else {
+      safeDetails = error.message;
+    }
+
     res.status(500).json({
       error: 'Investigation could not be completed. Please try again.',
-      details: error.message
+      details: safeDetails
     });
   } finally {
     // Clean up all temporary uploaded files from disk safely

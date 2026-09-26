@@ -45,7 +45,15 @@ export async function parseDocumentFile(
 
     return content.trim();
   } catch (err: any) {
-    console.error('Document parsing error:', err);
-    throw new Error(err.message || 'Unable to extract readable content from this document.');
+    // Avoid dumping raw stack traces for expected PDF parsing failures
+    const isPdfError = err.name === 'InvalidPDFException' || (err.message && (err.message.includes('Invalid PDF structure') || err.message.includes('bad XRef entry') || err.message.includes('Command token too long')));
+    
+    if (isPdfError) {
+      throw new Error('The uploaded PDF could not be parsed because it is invalid or corrupted. Please upload a valid PDF.');
+    }
+    
+    // Log unexpected errors briefly
+    console.error(`Document parsing failed: ${err.message || 'Unknown error'}`);
+    throw new Error('Unable to extract readable content from this document. The file might be corrupted, unsupported, or password protected.');
   }
 }

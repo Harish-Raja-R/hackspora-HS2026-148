@@ -77,15 +77,21 @@ const STAGES: StageItem[] = [
 
 interface InvestigationPipelineProps {
   onComplete?: () => void;
+  isReady?: boolean; // True when the API response has returned
 }
 
-export const InvestigationPipeline: React.FC<InvestigationPipelineProps> = ({ onComplete }) => {
+export const InvestigationPipeline: React.FC<InvestigationPipelineProps> = ({ onComplete, isReady = true }) => {
   const [currentStage, setCurrentStage] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
 
   useEffect(() => {
     const stageInterval = setInterval(() => {
       setCurrentStage((prev) => {
+        // If not ready, stall at the second to last stage (Stage 8)
+        if (!isReady && prev >= STAGES.length - 2) {
+          return prev;
+        }
+
         if (prev < STAGES.length) {
           const next = prev + 1;
           const stage = STAGES[prev];
@@ -102,10 +108,10 @@ export const InvestigationPipeline: React.FC<InvestigationPipelineProps> = ({ on
         }
         return prev;
       });
-    }, 280); // Fast, realistic cyber investigation speed (~2.5s total)
+    }, 280);
 
     return () => clearInterval(stageInterval);
-  }, [onComplete]);
+  }, [onComplete, isReady]);
 
   const progressPercent = Math.min(100, Math.round((currentStage / STAGES.length) * 100));
 

@@ -279,6 +279,6 @@ export async function persistInvestigationResult(
 
   } catch (error) {
     console.error('Failed to persist investigation to database:', error);
-    // We swallow the error so that the API response still works (backward compatibility requirement)
+    throw error;
   }
 }

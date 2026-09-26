@@ -162,7 +162,10 @@ export function App() {
 
             {/* Live SOC Investigation Pipeline (Animated Staged Radar) */}
             {isInvestigating && (
-              <InvestigationPipeline onComplete={handlePipelineComplete} />
+              <InvestigationPipeline 
+                onComplete={handlePipelineComplete} 
+                isReady={!!pendingReport} 
+              />
             )}
 
             {/* Completed Investigation Report */}

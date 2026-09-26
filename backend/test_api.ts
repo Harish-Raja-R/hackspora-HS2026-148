@@ -1,0 +1,1 @@
+import fs from 'fs'; import { parseDocumentFile } from './src/parsers/documentParser.js'; async function run() { try { fs.writeFileSync('invalid.pdf', 'not a pdf'); await parseDocumentFile('invalid.pdf', 'application/pdf', 'invalid.pdf'); console.log('FAIL: Did not throw'); } catch (e) { console.log('SUCCESS: Threw', e.message); } } run();
